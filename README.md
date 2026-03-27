@@ -46,3 +46,4 @@ cp -r .claude/ /path/to/your-project/.claude/
 - `docs/architecture.md` — 프로젝트 아키텍처 문서
 - `docs/roadmap/` — Phase 정의와 deliverable
 - `.claude/rules/` — 프로젝트 특화 규칙 추가
+- `.claude/settings.json` — 프로젝트에서 사용하는 빌드/테스트 도구에 맞게 권한 추가 (예: `Bash(cargo:*)`, `Bash(go:*)`, `Bash(make:*)`)
