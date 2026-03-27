@@ -1,7 +1,7 @@
 ---
 name: phase
 description: Phase 실행 workflow — phase 시작부터 종료까지의 체크리스트와 실행 순서
-user_invocable: true
+user-invocable: true
 ---
 
 # Phase $ARGUMENTS 실행

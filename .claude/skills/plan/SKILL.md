@@ -1,7 +1,7 @@
 ---
 name: plan
 description: 구현 전 설계 및 계획 수립 — 요구사항 분석, 설계 대안 비교, 구현 계획을 사용자와 정렬한다
-user_invocable: true
+user-invocable: true
 ---
 
 # Plan
