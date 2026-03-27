@@ -1,7 +1,7 @@
 ---
 name: self-review
 description: 구현 완료 후 thinking mode 반복 심층 리뷰 — 수정할 항목이 없을 때까지 분석-수정 사이클을 반복한다
-user_invocable: true
+user-invocable: true
 ---
 
 # Self Review
@@ -78,7 +78,6 @@ extended thinking을 활용하여 다음을 분석한다:
 - **종료**: 다음 중 하나에 해당하면 반복을 멈춘다
   - **즉시 반영** 항목이 0건인 경우 (clean pass)
   - 이전 iteration과 동일한 지적이 반복되는 경우 (수렴 판단)
-  - 최대 3회 iteration에 도달한 경우
 
 ### 반복 시 주의
 - 각 iteration의 수정 내역을 누적 기록한다.
@@ -94,7 +93,6 @@ extended thinking을 활용하여 다음을 분석한다:
 - 동일 변경에서 버그가 2개 이상 발견되고 즉시 반영으로 해결되지 않은 경우
 - 설계 원칙 위반이 발견된 경우
 - 수정 적용 후 빌드 또는 테스트가 실패하고, 단순 수정으로 해결되지 않는 경우
-- 3회 iteration 후에도 **즉시 반영** 항목이 계속 발생하는 경우
 
 ## 7. 보고 형식
 
