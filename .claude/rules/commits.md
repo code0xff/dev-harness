@@ -20,6 +20,11 @@
 - 권장 type: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 - `commit message`는 무엇을 바꿨는지 짧고 구체적으로 적는다.
 
+## Autonomy
+
+- phase 실행 중에는 의미 있는 작업 단위마다 자율적으로 커밋한다. 매 커밋마다 사용자 확인을 받지 않는다.
+- push 전에만 사용자 확인을 받는다 (phase skill의 리뷰 절차 참조).
+
 ## Pre-commit Checks
 
 - commit 전에는 빌드 검증과 해당 변경 범위 테스트를 수행한다.
