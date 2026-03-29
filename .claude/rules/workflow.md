@@ -12,6 +12,8 @@
 
 구조적 결정은 architecture 문서가 기준이고, 구현 순서는 roadmap이 기준이며, 개발 방식은 rules가 기준이다. 해당 문서가 없는 프로젝트에서는 rules만을 기준으로 한다.
 
+- 문서와 실제 구현이 불일치하는 경우 문서를 우선한다. 구현을 문서에 맞게 수정하거나, 의도적 변경이라면 문서를 먼저 갱신한 후 구현한다.
+
 ## When To Update Documents
 
 - 계층 책임, baseline 기술 선택이 바뀌면 → architecture 갱신
