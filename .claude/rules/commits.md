@@ -38,6 +38,13 @@
 - 작업 종료 시 commit history만 읽어도 구현 순서와 의도를 따라갈 수 있어야 한다.
 - 나중에 squashing을 기대한 임시 잡탕 commit보다 읽히는 history를 우선한다.
 
+## Branch Strategy
+
+- phase 또는 feature 단위로 브랜치를 생성한다.
+- 브랜치 네이밍: `type/short-description` (e.g., `feat/user-auth`, `fix/token-expiry`)
+- type은 commit message와 동일한 set을 사용한다: feat, fix, refactor, test, docs, chore
+- main에 직접 커밋은 문서만 변경하거나 설정 수정 등 단순 변경에 한한다.
+
 ## Prohibited
 
 - 관련 없는 변경을 한 commit에 섞지 않는다.
