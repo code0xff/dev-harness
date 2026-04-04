@@ -9,6 +9,8 @@
 - validate는 `project-automation.md`의 gate 명령을 따른다.
 - gate 실패 시 원인 분석 후 자동 수정한다.
 - 수정 후 같은 gate를 재실행한다.
+- 실행 상태는 `.claude/state/autopilot-state.json`에 기록한다.
+- 중단/실패 후 재개 시 `last_stage` 다음 단계부터 시작한다.
 
 ## Stop Conditions
 

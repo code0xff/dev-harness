@@ -80,11 +80,14 @@ cp -r .claude/ /path/to/your-project/.claude/
 
 ## Enforcement
 
+- 모든 `Bash` 실행 전 `project-approvals` 기반 pre-approval hook이 실행된다.
+- 모든 `Bash` 실행 전 `project-automation` 기반 risk-tier hook이 실행된다.
 - `git commit`, `git push` 전에 `.claude/project-profile.md` 유효성 검증 hook이 실행된다.
 - `git commit`, `git push` 전에 `.claude/project-approvals.md` 유효성 검증 hook이 실행된다.
 - `git commit`, `git push` 전에 `.claude/project-automation.md` 유효성 검증 hook이 실행된다.
 - `git push` 전에 automation gate(lint/build/test/security)가 자동 실행된다.
 - profile 필수 키 누락, gate 값 오류, placeholder 값(`user-selected`) 미확정 상태는 commit/push를 차단한다.
+- `run_gates_on_push: true`일 때 gate command를 `unset`으로 둘 수 없다.
 
 ## Automation Bootstrap
 
@@ -95,3 +98,8 @@ cp -r .claude/ /path/to/your-project/.claude/
 ```
 
 감지 결과를 검토한 뒤 `.claude/project-automation.md` 값을 확정한다.
+
+## Autopilot State
+
+`/autopilot` 실행 상태는 `.claude/state/autopilot-state.json`에 기록한다.
+실패/중단 후 재개 시 이 파일의 `last_stage`, `last_gate_result`, `error`를 기준으로 이어서 실행한다.

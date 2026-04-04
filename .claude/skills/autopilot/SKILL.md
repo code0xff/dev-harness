@@ -13,10 +13,12 @@ user-invocable: true
 - `.claude/project-profile.md`
 - `.claude/project-approvals.md`
 - `.claude/project-automation.md`
+- `.claude/state/autopilot-state.json` (있으면 재개 판단)
 - `rules/autopilot.md`
 
 필수 설정 파일/규칙이 없으면 먼저 생성 또는 보완한다.
 `lint_cmd/build_cmd/test_cmd`가 `unset`이면 `.claude/hooks/suggest-automation-gates.sh`로 후보를 채운 뒤 검토한다.
+새 세션 시작 시 `.claude/hooks/autopilot-state.sh start "<goal>"`로 상태를 초기화한다.
 
 ## 2. 자동 실행 루프
 
@@ -28,11 +30,15 @@ user-invocable: true
 6. gate 재검증
 7. 완료 기준 충족 시 종료, 미충족 시 루프 반복
 
+각 단계 전후로 `.claude/hooks/autopilot-state.sh checkpoint ...`를 기록하고,
+gate 결과는 `.claude/hooks/autopilot-state.sh gate ...`로 남긴다.
+
 ## 3. 실패 처리
 
 - gate별 실패 수정은 `max_fix_attempts_per_gate` 이내에서 자동 재시도
 - 전체 루프는 `max_autopilot_cycles` 이내에서 반복
 - 초과 시 원인/막힘 지점/다음 조치를 보고하고 종료
+- 실패 시 `.claude/hooks/autopilot-state.sh fail "<reason>"`를 기록한다.
 
 ## 4. 승인 정책
 
@@ -44,3 +50,4 @@ user-invocable: true
 - 코드/테스트/문서 반영
 - commit 단위 정리
 - 최종 보고: 변경 요약, 검증 결과, 남은 리스크
+- 정상 종료 시 `.claude/hooks/autopilot-state.sh complete`를 기록한다.

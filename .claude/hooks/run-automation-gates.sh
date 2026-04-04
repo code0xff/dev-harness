@@ -3,6 +3,7 @@
 set -euo pipefail
 
 AUTOMATION_FILE=".claude/project-automation.md"
+STATE_HOOK=".claude/hooks/autopilot-state.sh"
 
 if [ ! -f "$AUTOMATION_FILE" ]; then
   echo "automation gates 실패: $AUTOMATION_FILE 파일이 없습니다." >&2
@@ -30,14 +31,32 @@ if [ "$EVENT" = "push" ] && [ "$run_on_push" != "true" ]; then
   exit 0
 fi
 
+if [ -x "$STATE_HOOK" ]; then
+  "$STATE_HOOK" checkpoint "validate" "run-automation-gates event=${EVENT}"
+fi
+
 run_gate() {
   local gate_name="$1"
   local cmd="$2"
   if [ "$cmd" = "unset" ]; then
+    if [ -x "$STATE_HOOK" ]; then
+      "$STATE_HOOK" gate "$gate_name" "skip" "gate is unset"
+    fi
     return 0
   fi
   echo "[automation-gate] ${gate_name}: ${cmd}" >&2
-  eval "$cmd"
+  if eval "$cmd"; then
+    if [ -x "$STATE_HOOK" ]; then
+      "$STATE_HOOK" gate "$gate_name" "pass" "$cmd"
+    fi
+    return 0
+  fi
+
+  if [ -x "$STATE_HOOK" ]; then
+    "$STATE_HOOK" gate "$gate_name" "fail" "$cmd"
+    "$STATE_HOOK" fail "gate=${gate_name}"
+  fi
+  return 2
 }
 
 run_gate "lint" "$(get_value lint_cmd)"

@@ -18,10 +18,10 @@
 
 gate 명령이 비어 있으면 `.claude/hooks/suggest-automation-gates.sh`를 먼저 실행해 후보를 채운 뒤 확정한다.
 
-- lint_cmd: unset
-- build_cmd: unset
-- test_cmd: unset
-- security_cmd: unset
+- lint_cmd: find .claude/hooks -type f -name "*.sh" -print0 | xargs -0 -I{} bash -n "{}"
+- build_cmd: echo "no build step for harness-only repository"
+- test_cmd: .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh
+- security_cmd: if rg -n --hidden -S "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----|password\s*=|secret\s*=)" .; then echo "잠재적 시크릿 패턴 감지"; exit 1; else exit 0; fi
 
 ## Hook Enforcement
 

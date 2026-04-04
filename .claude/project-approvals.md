@@ -12,6 +12,7 @@
 - `npm test`
 
 프로젝트별로 실제 사용하는 명령만 남기고 불필요한 항목은 제거한다.
+Allowlist에 없는 변경성 명령(예: git add/commit/push, 의존성 변경, 파일 시스템 변경)은 hook에서 차단된다.
 
 ## Always Require Explicit Approval
 

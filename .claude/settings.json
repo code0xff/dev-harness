@@ -27,6 +27,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": ".claude/hooks/validate-pre-approval.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-risk-policy.sh"
+          },
+          {
+            "type": "command",
             "command": ".claude/hooks/validate-commit-msg.sh",
             "if": "Bash(git commit*)"
           },

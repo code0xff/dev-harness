@@ -60,4 +60,16 @@ for int_key in max_fix_attempts_per_gate max_autopilot_cycles; do
   fi
 done
 
+run_on_push=$(get_value "run_gates_on_push")
+if [ "$run_on_push" = "true" ]; then
+  for gate_key in lint_cmd build_cmd test_cmd security_cmd; do
+    gate_val=$(get_value "$gate_key")
+    if [ "$gate_val" = "unset" ]; then
+      echo "project-automation 검증 실패: run_gates_on_push=true 일 때 ${gate_key}=unset은 허용되지 않습니다." >&2
+      echo ".claude/hooks/suggest-automation-gates.sh로 후보를 채우고 확정하세요." >&2
+      exit 2
+    fi
+  done
+fi
+
 exit 0
