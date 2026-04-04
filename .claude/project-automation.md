@@ -16,6 +16,8 @@
 
 ## Gate Commands
 
+gate 명령이 비어 있으면 `.claude/hooks/suggest-automation-gates.sh`를 먼저 실행해 후보를 채운 뒤 확정한다.
+
 - lint_cmd: unset
 - build_cmd: unset
 - test_cmd: unset

@@ -60,6 +60,12 @@ user-invocable: true
 - commit/push 시 gate 강제 여부
 - 위험도별 자동 반영 정책
 
+가능하면 아래 명령으로 gate 후보를 자동 감지한 뒤, 결과를 검토해 확정한다.
+
+```bash
+.claude/hooks/suggest-automation-gates.sh
+```
+
 ## 7. 변경 규칙
 
 - 프로파일 변경은 설계 변경으로 취급한다.

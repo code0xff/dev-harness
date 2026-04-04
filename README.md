@@ -85,3 +85,13 @@ cp -r .claude/ /path/to/your-project/.claude/
 - `git commit`, `git push` 전에 `.claude/project-automation.md` 유효성 검증 hook이 실행된다.
 - `git push` 전에 automation gate(lint/build/test/security)가 자동 실행된다.
 - profile 필수 키 누락, gate 값 오류, placeholder 값(`user-selected`) 미확정 상태는 commit/push를 차단한다.
+
+## Automation Bootstrap
+
+프로젝트별 lint/build/test 명령이 아직 미확정이면 아래로 후보를 자동 감지한다.
+
+```bash
+.claude/hooks/suggest-automation-gates.sh
+```
+
+감지 결과를 검토한 뒤 `.claude/project-automation.md` 값을 확정한다.

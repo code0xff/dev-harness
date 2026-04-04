@@ -49,6 +49,7 @@ rules/는 모든 작업에 항상 적용된다. 실행 엔진/모델은 `.claude
 - gate 강도(`required`/`recommended`) 고정
 
 고정 이후에는 권장값보다 프로젝트 고정값을 우선한다.
+자동화 gate 명령이 비어 있으면 `.claude/hooks/suggest-automation-gates.sh`로 후보를 채우고 확정한다.
 
 ## 다른 프로젝트에 적용
 
