@@ -6,6 +6,7 @@
   - **API 문서**: 공개 인터페이스의 입력, 출력, 에러, 사용 예시
   - **Roadmap**: workstream 기반 개발 시 workstream 정의와 deliverable
   - **Project Profile**: 엔진/모델/게이트 고정값 (`.claude/project-profile.md`)
+  - **Project Approvals**: 사전 승인 명령/행동 범위 (`.claude/project-approvals.md`)
 - 프로젝트에 필요 없는 문서 유형을 만들지 않는다.
 
 ## README

@@ -7,7 +7,7 @@ user-invocable: true
 # Init Harness
 
 프로젝트 시작 단계에서 실행할 초기화 절차다.
-목표는 엔진/모델/게이트를 한 번 확정하고 이후 일관되게 적용하는 것이다.
+목표는 엔진/모델/게이트와 사전 승인 범위를 한 번 확정하고 이후 일관되게 적용하는 것이다.
 
 ## 1. 프로파일 선택
 
@@ -35,7 +35,22 @@ user-invocable: true
 - 프로젝트 README 또는 운영 문서에 활성 프로파일을 명시한다.
 - `.claude/hooks/validate-project-profile.sh` 검증을 통과하는지 확인한다.
 
-## 4. 변경 규칙
+## 4. 사전 Approve 설정
+
+`.claude/project-approvals.md`에 다음을 기록한다.
+
+- Command Prefix Allowlist
+- Always Require Explicit Approval 항목
+- Sandbox / Escalation Policy
+
+이 설정은 commit/push 전 `validate-project-approvals.sh` hook으로 검증된다.
+
+## 5. 토큰 최적화 기준 확정
+
+- 프로젝트 컨텍스트 운영 규칙은 `rules/token-optimization.md`를 기본값으로 사용한다.
+- 대규모 저장소는 workstream 단위 요약, 부분 조회 우선 원칙을 문서에 명시한다.
+
+## 6. 변경 규칙
 
 - 프로파일 변경은 설계 변경으로 취급한다.
 - 변경 전 사용자 확인을 받고, 변경 이유를 커밋 메시지나 문서에 남긴다.

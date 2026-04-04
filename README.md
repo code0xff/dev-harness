@@ -28,7 +28,7 @@ cp -r .claude/ /path/to/your-project/.claude/
 세부 규칙은 `.claude/rules/engine-profile.md`, `.claude/rules/workflow.md`, `CLAUDE.md`를 따른다.
 
 
-### Rules (10개) — 개발 원칙
+### Rules (11개) — 개발 원칙
 
 | 파일 | 역할 |
 |------|------|
@@ -40,6 +40,7 @@ cp -r .claude/ /path/to/your-project/.claude/
 | `commits.md` | 커밋 단위, 메시지, 히스토리 품질 |
 | `engine-profile.md` | 엔진/모델 프로파일, 기본값/고정값 정책 |
 | `engine-adapters.md` | 엔진별 실행 매핑과 intent contract |
+| `token-optimization.md` | 컨텍스트/토큰 사용 최적화 기준 |
 | `workflow.md` | 워크플로우, 문서 계층, workstream 규칙 |
 | `autonomy.md` | 자율 실행 범위, 사용자 확인 경계, 에스컬레이션 |
 
@@ -69,6 +70,7 @@ cp -r .claude/ /path/to/your-project/.claude/
 - `docs/architecture.md` — 프로젝트 아키텍처 문서
 - `docs/roadmap/` — Workstream 정의와 deliverable
 - `.claude/project-profile.md` — 프로젝트 엔진/모델 고정값
+- `.claude/project-approvals.md` — 프로젝트 사전 승인 범위
 - `.claude/profiles/` — 프로파일 템플릿(claude-default, generic-ai, lightweight-fast)
 - `.claude/rules/` — 프로젝트 특화 규칙 추가
 - `.claude/settings.json` — 프로젝트에서 사용하는 빌드/테스트 도구에 맞게 권한 추가 (예: `Bash(cargo:*)`, `Bash(go:*)`, `Bash(make:*)`)
@@ -76,4 +78,5 @@ cp -r .claude/ /path/to/your-project/.claude/
 ## Enforcement
 
 - `git commit`, `git push` 전에 `.claude/project-profile.md` 유효성 검증 hook이 실행된다.
+- `git commit`, `git push` 전에 `.claude/project-approvals.md` 유효성 검증 hook이 실행된다.
 - profile 필수 키 누락, gate 값 오류, placeholder 값(`user-selected`) 미확정 상태는 commit/push를 차단한다.

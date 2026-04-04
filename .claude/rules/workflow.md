@@ -10,9 +10,10 @@
 1. Architecture 문서 (있는 경우)
 2. Roadmap / workstream 문서 (있는 경우)
 3. Project profile (`.claude/project-profile.md`, 있는 경우)
-4. Rules (`.claude/rules/`)
+4. Project approvals (`.claude/project-approvals.md`, 있는 경우)
+5. Rules (`.claude/rules/`)
 
-구조적 결정은 architecture 문서가 기준이고, 구현 순서는 roadmap이 기준이며, 실행 엔진/모델은 project profile이 기준이고, 개발 방식은 rules가 기준이다. 해당 문서가 없는 프로젝트에서는 존재하는 하위 기준만 적용한다.
+구조적 결정은 architecture 문서가 기준이고, 구현 순서는 roadmap이 기준이며, 실행 엔진/모델은 project profile이 기준이고, 사전 승인 범위는 project approvals가 기준이며, 개발 방식은 rules가 기준이다. 해당 문서가 없는 프로젝트에서는 존재하는 하위 기준만 적용한다.
 
 - 문서와 실제 구현이 불일치하는 경우 문서를 우선한다. 구현을 문서에 맞게 수정하거나, 의도적 변경이라면 문서를 먼저 갱신한 후 구현한다.
 
@@ -67,6 +68,7 @@ workstream 구현 중과 완료 시 다음 리뷰를 수행한다:
 - 대화 간 유지해야 할 정보(결정 사항, 사용자 선호, 프로젝트 맥락)는 memory에 저장한다.
 - 대규모 탐색이나 조사는 서브 에이전트로 분리하여 메인 context의 오염을 방지한다.
 - rules/ 전체 instruction 수를 200개 이하로 유지한다. 상세 절차는 skills로 분리하여 필요 시에만 로드한다.
+- 토큰 절약 운영 기준은 `token-optimization.md`를 따른다.
 
 ## Future Ideas Rule
 
