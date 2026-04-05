@@ -27,14 +27,12 @@ user-invocable: true
 3. gate 실행 (lint/build/test/security)
 4. `/self-review` + 외부 review 절차
 5. quality gate 실행
-6. release stage 실행(정책이 auto일 때만)
-7. 실패 시 fix 단계 실행 후 gate 재검증
-8. 완료 기준 충족 시 종료, 미충족 시 루프 반복
+6. 실패 시 fix 단계 실행 후 gate 재검증
+7. 완료 기준 충족 시 종료, 미충족 시 루프 반복
 
 각 단계 전후로 `.claude/hooks/autopilot-state.sh checkpoint ...`를 기록하고,
 gate 결과는 `.claude/hooks/autopilot-state.sh gate ...`로 남긴다.
 중단 후 재개는 `.claude/hooks/run-autopilot.sh resume`를 사용한다.
-완료 시 metrics 정책이 켜져 있으면 `.claude/hooks/report-automation-metrics.sh`를 실행한다.
 
 ## 3. 실패 처리
 

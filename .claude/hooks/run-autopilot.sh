@@ -7,10 +7,8 @@ STATE_FILE=".claude/state/autopilot-state.json"
 STATE_HOOK=".claude/hooks/autopilot-state.sh"
 GATE_HOOK=".claude/hooks/run-automation-gates.sh"
 QUALITY_HOOK=".claude/hooks/run-quality-gates.sh"
-RELEASE_HOOK=".claude/hooks/run-release-stage.sh"
 ENGINE_HOOK=".claude/hooks/run-engine-intent.sh"
 ENGINE_READY_HOOK=".claude/hooks/check-engine-readiness.sh"
-METRICS_REPORT_HOOK=".claude/hooks/report-automation-metrics.sh"
 
 if [ ! -f "$AUTOMATION_FILE" ]; then
   echo "run-autopilot 실패: $AUTOMATION_FILE 파일이 없습니다." >&2
@@ -33,10 +31,6 @@ if [ ! -x "$GATE_HOOK" ]; then
 fi
 if [ ! -x "$QUALITY_HOOK" ]; then
   echo "run-autopilot 실패: $QUALITY_HOOK 실행 권한이 필요합니다." >&2
-  exit 2
-fi
-if [ ! -x "$RELEASE_HOOK" ]; then
-  echo "run-autopilot 실패: $RELEASE_HOOK 실행 권한이 필요합니다." >&2
   exit 2
 fi
 if [ ! -x "$ENGINE_HOOK" ]; then
@@ -122,16 +116,6 @@ run_quality_stage() {
   return 2
 }
 
-run_release_stage() {
-  "$STATE_HOOK" checkpoint "release" "run release stage"
-  if "$RELEASE_HOOK"; then
-    "$STATE_HOOK" checkpoint "release" "ok"
-    return 0
-  fi
-  "$STATE_HOOK" fail "stage=release"
-  return 2
-}
-
 run_sequence_from() {
   local start_stage="$1"
   local plan_cmd="$2"
@@ -143,22 +127,19 @@ run_sequence_from() {
   local stages=()
   case "$start_stage" in
     plan)
-      stages=(plan implement validate review quality release)
+      stages=(plan implement validate review quality)
       ;;
     implement)
-      stages=(implement validate review quality release)
+      stages=(implement validate review quality)
       ;;
     validate)
-      stages=(validate review quality release)
+      stages=(validate review quality)
       ;;
     review)
-      stages=(review quality release)
+      stages=(review quality)
       ;;
     quality)
-      stages=(quality release)
-      ;;
-    release)
-      stages=(release)
+      stages=(quality)
       ;;
     *)
       echo "run-autopilot 실패: 알 수 없는 stage='$start_stage'" >&2
@@ -184,9 +165,6 @@ run_sequence_from() {
       quality)
         run_quality_stage || return 2
         ;;
-      release)
-        run_release_stage || return 2
-        ;;
     esac
   done
 }
@@ -197,7 +175,6 @@ GOAL="${*:-autopilot-goal}"
 
 max_cycles=$(get_value "max_autopilot_cycles")
 max_fix_attempts=$(get_value "max_fix_attempts_per_gate")
-metrics_report_on_complete=$(get_value "metrics_report_on_complete")
 plan_cmd=$(get_value "plan_cmd")
 implement_cmd=$(get_value "implement_cmd")
 review_cmd=$(get_value "review_cmd")
@@ -240,9 +217,6 @@ while [ "$cycle" -le "$max_cycles" ]; do
   "$STATE_HOOK" cycle "$cycle"
   if run_sequence_from "$start_stage" "$plan_cmd" "$implement_cmd" "$review_cmd" "$GOAL" "$max_fix_attempts"; then
     "$STATE_HOOK" complete
-    if [ "$metrics_report_on_complete" = "true" ] && [ -x "$METRICS_REPORT_HOOK" ]; then
-      "$METRICS_REPORT_HOOK" || true
-    fi
     echo "run-autopilot: completed (cycle=$cycle)"
     exit 0
   fi
@@ -250,7 +224,7 @@ while [ "$cycle" -le "$max_cycles" ]; do
   cycle=$((cycle + 1))
   start_stage="$(jq -r '.last_stage // "implement"' "$STATE_FILE")"
   case "$start_stage" in
-    plan|implement|validate|review|quality|release) ;;
+    plan|implement|validate|review|quality) ;;
     *) start_stage="implement" ;;
   esac
 done

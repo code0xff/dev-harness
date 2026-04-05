@@ -40,8 +40,16 @@ run_expect_fail_pipe() {
 }
 
 cleanup() {
+  cp "$AUTOMATION_BAK" .claude/project-automation.md
+  cp "$APPROVALS_BAK" .claude/project-approvals.md
   rm -f .claude/state/autopilot-state.json
+  rm -f "$AUTOMATION_BAK" "$APPROVALS_BAK"
 }
+
+AUTOMATION_BAK="$(mktemp)"
+APPROVALS_BAK="$(mktemp)"
+cp .claude/project-automation.md "$AUTOMATION_BAK"
+cp .claude/project-approvals.md "$APPROVALS_BAK"
 trap cleanup EXIT
 
 run_expect_ok "hook syntax" sh -c 'find .claude/hooks -type f -name "*.sh" -print0 | xargs -0 -I{} bash -n "{}"'
@@ -49,6 +57,9 @@ run_expect_ok "hook syntax" sh -c 'find .claude/hooks -type f -name "*.sh" -prin
 run_expect_ok "project profile validation" .claude/hooks/validate-project-profile.sh
 run_expect_ok "project approvals validation" .claude/hooks/validate-project-approvals.sh
 run_expect_ok "project automation validation" .claude/hooks/validate-project-automation.sh
+run_expect_ok "init bootstrap" .claude/hooks/bootstrap-init-harness.sh
+run_expect_ok "project approvals validation after bootstrap" .claude/hooks/validate-project-approvals.sh
+run_expect_ok "project automation validation after bootstrap" .claude/hooks/validate-project-automation.sh
 
 run_expect_ok "pre-approval allowlisted command" sh -c \
   "cat <<'JSON' | .claude/hooks/validate-pre-approval.sh >/dev/null
@@ -77,13 +88,11 @@ run_expect_ok "automation gates push" .claude/hooks/run-automation-gates.sh push
 run_expect_ok "quality gates push" .claude/hooks/run-quality-gates.sh push
 run_expect_ok "engine readiness check" .claude/hooks/check-engine-readiness.sh
 run_expect_ok "engine intent fallback plan" .claude/hooks/run-engine-intent.sh plan "ci-intent"
-run_expect_ok "release stage auto" .claude/hooks/run-release-stage.sh
 
 run_expect_ok "autopilot start" .claude/hooks/run-autopilot.sh start "ci-regression"
 run_expect_ok "autopilot resume completed" .claude/hooks/run-autopilot.sh resume
 
 run_expect_ok "autopilot state completed" sh -c \
   'test "$(jq -r ".status" .claude/state/autopilot-state.json)" = "completed"'
-run_expect_ok "metrics report generated" .claude/hooks/report-automation-metrics.sh
 
 pass "all harness regression checks"

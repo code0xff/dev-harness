@@ -1,0 +1,195 @@
+#!/bin/bash
+
+set -euo pipefail
+
+AUTOMATION_FILE=".claude/project-automation.md"
+APPROVALS_FILE=".claude/project-approvals.md"
+
+if [ ! -f "$AUTOMATION_FILE" ]; then
+  echo "bootstrap 실패: $AUTOMATION_FILE 파일이 없습니다." >&2
+  exit 2
+fi
+if [ ! -f "$APPROVALS_FILE" ]; then
+  echo "bootstrap 실패: $APPROVALS_FILE 파일이 없습니다." >&2
+  exit 2
+fi
+
+set_automation_key() {
+  local key="$1"
+  local value="$2"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { updated = 0 }
+    $0 ~ "^- " key ":" {
+      print "- " key ": " value
+      updated = 1
+      next
+    }
+    { print }
+    END {
+      if (updated == 0) {
+        print "- " key ": " value
+      }
+    }
+  ' "$AUTOMATION_FILE" > "${AUTOMATION_FILE}.tmp"
+  mv "${AUTOMATION_FILE}.tmp" "$AUTOMATION_FILE"
+}
+
+get_automation_value() {
+  local key="$1"
+  grep -E "^- ${key}:" "$AUTOMATION_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true
+}
+
+ensure_allowlist_item() {
+  local item="$1"
+  [ -z "$item" ] && return 0
+  if grep -Fq -- "- \`$item\`" "$APPROVALS_FILE"; then
+    return 0
+  fi
+  awk -v item="$item" '
+    BEGIN { in_section = 0; inserted = 0; seen_list = 0 }
+    $0 == "## Command Prefix Allowlist" { in_section = 1; print; next }
+    in_section == 1 && /^- `/ { seen_list = 1; print; next }
+    in_section == 1 && /^## / {
+      if (inserted == 0) {
+        print "- `" item "`"
+        inserted = 1
+      }
+      in_section = 0
+      print
+      next
+    }
+    in_section == 1 && seen_list == 1 && $0 !~ /^- `/ && $0 !~ /^[[:space:]]*$/ {
+      if (inserted == 0) {
+        print "- `" item "`"
+        inserted = 1
+      }
+      in_section = 0
+    }
+    { print }
+    END {
+      if (in_section == 1 && inserted == 0) {
+        print "- `" item "`"
+      }
+    }
+  ' "$APPROVALS_FILE" > "${APPROVALS_FILE}.tmp"
+  mv "${APPROVALS_FILE}.tmp" "$APPROVALS_FILE"
+}
+
+command_prefix() {
+  local cmd="$1"
+  [ -z "$cmd" ] || [ "$cmd" = "unset" ] && return 0
+  case "$cmd" in
+    if\ *|for\ *|while\ *|echo\ *|find\ *|rg\ *|grep\ *)
+      return 0
+      ;;
+  esac
+
+  read -r w1 w2 w3 _ <<< "$cmd"
+  [ -z "${w1:-}" ] && return 0
+
+  case "$w1" in
+    npm)
+      if [ "${w2:-}" = "run" ] && [ -n "${w3:-}" ]; then
+        echo "npm run $w3"
+        return 0
+      fi
+      if [ "${w2:-}" = "test" ]; then
+        echo "npm test"
+        return 0
+      fi
+      ;;
+    python|python3)
+      if [ "${w2:-}" = "-m" ] && [ -n "${w3:-}" ]; then
+        echo "$w1 -m $w3"
+        return 0
+      fi
+      ;;
+    go|cargo|make|pytest|ruff|codex|claude)
+      if [ -n "${w2:-}" ]; then
+        echo "$w1 $w2"
+      else
+        echo "$w1"
+      fi
+      return 0
+      ;;
+  esac
+}
+
+# 1) gate 기본값 자동 감지
+.claude/hooks/suggest-automation-gates.sh >/dev/null
+
+# 2) quality 세부 커맨드 자동 설정
+quality_coverage_cmd="unset"
+quality_perf_cmd="unset"
+quality_architecture_cmd="unset"
+
+if [ -f package.json ] && command -v jq >/dev/null 2>&1; then
+  if jq -e '.scripts.coverage' package.json >/dev/null 2>&1; then
+    quality_coverage_cmd="npm run coverage"
+  elif jq -e '.scripts.test' package.json >/dev/null 2>&1; then
+    quality_coverage_cmd="npm test -- --coverage"
+  fi
+  if jq -e '.scripts.perf' package.json >/dev/null 2>&1; then
+    quality_perf_cmd="npm run perf"
+  elif jq -e '.scripts.benchmark' package.json >/dev/null 2>&1; then
+    quality_perf_cmd="npm run benchmark"
+  fi
+  if jq -e '.scripts.typecheck' package.json >/dev/null 2>&1; then
+    quality_architecture_cmd="npm run typecheck"
+  elif jq -e '.scripts.lint' package.json >/dev/null 2>&1; then
+    quality_architecture_cmd="npm run lint"
+  fi
+elif [ -f pyproject.toml ]; then
+  quality_coverage_cmd="pytest --cov -q"
+  quality_perf_cmd="unset"
+  quality_architecture_cmd="ruff check ."
+elif [ -f go.mod ]; then
+  quality_coverage_cmd="go test ./... -cover"
+  quality_perf_cmd="go test ./... -run=^$ -bench ."
+  quality_architecture_cmd="go vet ./..."
+elif [ -f Cargo.toml ]; then
+  quality_coverage_cmd="cargo test --all-targets"
+  quality_perf_cmd="cargo bench"
+  quality_architecture_cmd="cargo clippy --all-targets --all-features -- -D warnings"
+fi
+
+set_automation_key "quality_coverage_cmd" "$quality_coverage_cmd"
+set_automation_key "quality_perf_cmd" "$quality_perf_cmd"
+set_automation_key "quality_architecture_cmd" "$quality_architecture_cmd"
+
+# 3) engine adapter 커맨드 자동 설정
+if command -v codex >/dev/null 2>&1; then
+  set_automation_key "engine_cmd_codex" 'codex --help >/dev/null'
+else
+  set_automation_key "engine_cmd_codex" "unset"
+fi
+
+if command -v claude >/dev/null 2>&1; then
+  set_automation_key "engine_cmd_claude" 'claude --help >/dev/null'
+else
+  set_automation_key "engine_cmd_claude" "unset"
+fi
+
+if command -v openai >/dev/null 2>&1; then
+  set_automation_key "engine_cmd_openai" 'openai --help >/dev/null'
+else
+  set_automation_key "engine_cmd_openai" "unset"
+fi
+
+# 4) approvals allowlist 자동 보강
+ensure_allowlist_item "git add"
+ensure_allowlist_item "git commit"
+ensure_allowlist_item "git push"
+
+for key in lint_cmd build_cmd test_cmd plan_cmd implement_cmd review_cmd quality_coverage_cmd quality_perf_cmd quality_architecture_cmd; do
+  cmd="$(get_automation_value "$key")"
+  prefix="$(command_prefix "$cmd" || true)"
+  if [ -n "${prefix:-}" ]; then
+    ensure_allowlist_item "$prefix"
+  fi
+done
+
+echo "init-harness bootstrap 완료:"
+echo "- automation gates/quality/engine adapter 값 자동 설정"
+echo "- approvals allowlist 자동 보강"
+exit 0

@@ -46,17 +46,6 @@ required_keys=(
   "quality_coverage_cmd"
   "quality_perf_cmd"
   "quality_architecture_cmd"
-  "release_mode"
-  "allow_auto_release"
-  "require_clean_worktree_before_release"
-  "deploy_cmd"
-  "verify_release_cmd"
-  "rollback_cmd"
-  "release_smoke_cmd"
-  "release_verify_retries"
-  "release_verify_interval_sec"
-  "enable_metrics_logging"
-  "metrics_report_on_complete"
   "auto_apply_risk_tier"
   "require_user_for_risk_tier"
 )
@@ -79,7 +68,7 @@ if [ "$automation_mode" != "full-auto" ] && [ "$automation_mode" != "assisted-au
   exit 2
 fi
 
-for bool_key in allow_midway_user_prompt final_report_only run_gates_on_commit run_gates_on_push run_quality_on_commit run_quality_on_push enable_quality_gates allow_engine_stub execute_engine_commands allow_auto_release require_clean_worktree_before_release enable_metrics_logging metrics_report_on_complete; do
+for bool_key in allow_midway_user_prompt final_report_only run_gates_on_commit run_gates_on_push run_quality_on_commit run_quality_on_push enable_quality_gates allow_engine_stub execute_engine_commands; do
   val=$(get_value "$bool_key")
   if [ "$val" != "true" ] && [ "$val" != "false" ]; then
     echo "project-automation 검증 실패: ${bool_key}는 true 또는 false여야 합니다." >&2
@@ -115,25 +104,6 @@ if [ "$enable_quality_gates" = "true" ] && [ "$quality_cmd" = "unset" ]; then
   exit 2
 fi
 
-release_mode=$(get_value "release_mode")
-if [ "$release_mode" != "disabled" ] && [ "$release_mode" != "manual" ] && [ "$release_mode" != "auto" ]; then
-  echo "project-automation 검증 실패: release_mode는 disabled/manual/auto 중 하나여야 합니다." >&2
-  exit 2
-fi
-allow_auto_release=$(get_value "allow_auto_release")
-deploy_cmd=$(get_value "deploy_cmd")
-verify_release_cmd=$(get_value "verify_release_cmd")
-if [ "$release_mode" = "auto" ]; then
-  if [ "$allow_auto_release" != "true" ]; then
-    echo "project-automation 검증 실패: release_mode=auto 일 때 allow_auto_release=true가 필요합니다." >&2
-    exit 2
-  fi
-  if [ "$deploy_cmd" = "unset" ] || [ "$verify_release_cmd" = "unset" ]; then
-    echo "project-automation 검증 실패: release_mode=auto 일 때 deploy/verify_release_cmd를 확정해야 합니다." >&2
-    exit 2
-  fi
-fi
-
 for int_key in max_fix_attempts_per_gate max_autopilot_cycles; do
   val=$(get_value "$int_key")
   if ! echo "$val" | grep -Eq '^[0-9]+$'; then
@@ -141,18 +111,6 @@ for int_key in max_fix_attempts_per_gate max_autopilot_cycles; do
     exit 2
   fi
 done
-
-for int_key in release_verify_retries release_verify_interval_sec; do
-  val=$(get_value "$int_key")
-  if ! echo "$val" | grep -Eq '^[0-9]+$'; then
-    echo "project-automation 검증 실패: ${int_key}는 정수여야 합니다." >&2
-    exit 2
-  fi
-done
-if [ "$(get_value release_verify_retries)" -lt 1 ]; then
-  echo "project-automation 검증 실패: release_verify_retries는 1 이상이어야 합니다." >&2
-  exit 2
-fi
 
 run_on_push=$(get_value "run_gates_on_push")
 if [ "$run_on_push" = "true" ]; then

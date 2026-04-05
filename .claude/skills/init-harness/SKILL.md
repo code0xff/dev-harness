@@ -65,14 +65,19 @@ user-invocable: true
 - lint/build/test/security gate 명령
 - commit/push 시 gate/quality 강제 여부
 - `quality_cmd`, `quality_coverage_cmd`, `quality_perf_cmd`, `quality_architecture_cmd`
-- `release_mode`, `allow_auto_release`, `deploy/verify/rollback`, `release_smoke_cmd`, retry 정책
-- `enable_metrics_logging`, `metrics_report_on_complete`
 - 위험도별 자동 반영 정책
 
 가능하면 아래 명령으로 gate 후보를 자동 감지한 뒤, 결과를 검토해 확정한다.
 
 ```bash
 .claude/hooks/suggest-automation-gates.sh
+```
+
+초기 입력을 최소화하려면 아래 bootstrap을 우선 실행한다.
+이 스크립트는 gate, quality 세부 명령, engine adapter 템플릿, approvals allowlist를 자동 채운다.
+
+```bash
+.claude/hooks/bootstrap-init-harness.sh
 ```
 
 ## 7. 변경 규칙
