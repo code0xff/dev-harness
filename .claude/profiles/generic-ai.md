@@ -3,15 +3,15 @@
 ## Profile
 
 - profile_name: generic-ai
-- plan_engine: openai
+- plan_engine: codex
 - build_engine: claude
 - review_engine: codex
 
 ## Models (optional)
 
-- plan_model: gpt-5.3
+- plan_model: gpt-5.4
 - build_model: claude-sonnet-4.5
-- review_model: gpt-5.3-codex
+- review_model: gpt-5.4
 
 ## Gate Policy
 

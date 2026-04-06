@@ -9,9 +9,9 @@
 
 ## Models (optional)
 
-- plan_model: unset
-- build_model: unset
-- review_model: unset
+- plan_model: gpt-5.4
+- build_model: claude-sonnet-4.5
+- review_model: gpt-5.4
 
 ## Gate Policy
 
