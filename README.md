@@ -3,12 +3,29 @@
 AI 개발 워크플로우를 위한 harness rules/skills 모음.
 기본값은 Claude 중심 프로파일을 권장하지만, 프로젝트 시작 시 엔진/모델을 고정해 범용으로 운영할 수 있다.
 
-새 프로젝트에 `.claude/` 디렉토리를 복사하여 사용한다.
+## 빠른 시작 (Template + curl|bash)
 
-## 사용법
+1. GitHub에서 `Use this template`로 새 저장소를 만든다.
+2. 새 저장소를 clone한 뒤 아래를 실행한다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/code0xff/dev-harness/main/scripts/bootstrap-project.sh | bash
+```
+
+이 명령은 실행 권한을 맞추고 온보딩 훅을 1회 실행한다.
+이후 Claude에서 `/init-project`를 실행해 목표/스택을 확정하고, 다시 온보딩 훅을 실행한다.
+
+```bash
+.claude/hooks/run-project-onboarding.sh
+```
+
+## 수동 사용법
+
+새 프로젝트에 `.claude/`와 `.devharness/`를 복사해 사용할 수도 있다.
 
 ```bash
 cp -r .claude/ /path/to/your-project/.claude/
+cp -r .devharness/ /path/to/your-project/.devharness/
 ```
 
 ## 구성
