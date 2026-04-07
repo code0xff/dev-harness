@@ -154,7 +154,8 @@ Follow the Implementation Plan from the plan output exactly.
 Make the required code/document changes before answering.
 If the plan specifies specific files, modules, or interfaces, implement those.
 
-You have access to the Codex plugin. You may use /codex:rescue to delegate complex implementation subtasks.
+You may have access to the Codex MCP plugin. If the codex tools are available in this session, use /codex:rescue to delegate complex implementation subtasks.
+If codex tools are not available or do not respond, implement the plan yourself using all context provided.
 
 Return markdown only.
 You must include these exact headings:

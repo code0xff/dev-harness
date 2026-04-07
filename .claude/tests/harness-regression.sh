@@ -214,4 +214,35 @@ DEV_HARNESS_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "no-steps-tes
 out="$(DEV_HARNESS_TEST_MODE=true .claude/hooks/run-build-steps.sh "no-steps-test" 2>&1)"
 echo "$out" | grep -q "Build Changes"'
 
+# ── check-codex-plugin.sh detection logic ──
+
+PLUGIN_CHECK_SCRIPT="${ROOT_DIR}/.claude/hooks/check-codex-plugin.sh"
+
+run_expect_ok "check-codex-plugin returns none when no .mcp.json and no codex CLI" sh -c "
+TMPDIR_TEST=\"\$(mktemp -d)\"
+# No .mcp.json, override PATH to exclude codex CLI
+out=\"\$(REPO_ROOT=\"\$TMPDIR_TEST\" PATH=\"/usr/bin:/bin\" bash '${PLUGIN_CHECK_SCRIPT}' check 2>/dev/null)\"
+rm -rf \"\$TMPDIR_TEST\"
+[ \"\$out\" = \"none\" ]"
+
+run_expect_ok "check-codex-plugin returns plugin when .mcp.json configured and npx package resolvable" sh -c "
+TMPDIR_TEST=\"\$(mktemp -d)\"
+printf '%s' '{\"mcpServers\":{\"codex\":{\"command\":\"npx\",\"args\":[\"-y\",\"codex-mcp-server\"]}}}' > \"\$TMPDIR_TEST/.mcp.json\"
+mkdir -p \"\$TMPDIR_TEST/bin\"
+printf '%s\n' '#!/bin/bash' 'if [[ \"\$*\" == *\"--no-install\"* ]]; then exit 0; fi' 'exit 1' > \"\$TMPDIR_TEST/bin/npx\"
+chmod +x \"\$TMPDIR_TEST/bin/npx\"
+out=\"\$(REPO_ROOT=\"\$TMPDIR_TEST\" PATH=\"\$TMPDIR_TEST/bin:/usr/bin:/bin\" bash '${PLUGIN_CHECK_SCRIPT}' check 2>/dev/null)\"
+rm -rf \"\$TMPDIR_TEST\"
+[ \"\$out\" = \"plugin\" ]"
+
+run_expect_ok "check-codex-plugin returns none when .mcp.json configured but package not installed" sh -c "
+TMPDIR_TEST=\"\$(mktemp -d)\"
+printf '%s' '{\"mcpServers\":{\"codex\":{\"command\":\"npx\",\"args\":[\"-y\",\"codex-mcp-server\"]}}}' > \"\$TMPDIR_TEST/.mcp.json\"
+mkdir -p \"\$TMPDIR_TEST/bin\"
+printf '%s\n' '#!/bin/bash' 'if [[ \"\$*\" == *\"--no-install\"* ]]; then exit 1; fi' 'exit 0' > \"\$TMPDIR_TEST/bin/npx\"
+chmod +x \"\$TMPDIR_TEST/bin/npx\"
+out=\"\$(REPO_ROOT=\"\$TMPDIR_TEST\" PATH=\"\$TMPDIR_TEST/bin:/usr/bin:/bin\" bash '${PLUGIN_CHECK_SCRIPT}' check 2>/dev/null)\"
+rm -rf \"\$TMPDIR_TEST\"
+[ \"\$out\" = \"none\" ]"
+
 pass "all harness regression checks"
