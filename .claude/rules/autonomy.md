@@ -14,7 +14,7 @@
 
 ## 사용자 확인 필요
 
-- push (`project-automation.md`의 `allow_auto_push: true`일 때 `/autopilot`에서만 예외 허용)
+- push (기본 정책은 개발 후 별도 전략으로 처리한다. `allow_auto_push: true`일 때 `/autopilot`에서만 예외 허용)
 - 브랜치 삭제
 - 의존성 추가/제거
 - rules, skills 수정
@@ -23,6 +23,10 @@
 - `.claude/project-automation.md` 변경 (자동화/게이트 정책 변경)
 - 리뷰에서 사용자 판단 필요 항목
 - 설계 문서(architecture, roadmap) 변경
+
+`/autopilot`이 `automation_mode: full-auto`이고 `preapproval_enforcement/risk_enforcement/unresolved_config_enforcement=report`인 경우에는 위 항목도 개발 중에는 작업을 계속 진행할 수 있다.
+이 경우 에이전트는 가장 합리적인 방향으로 임시 결정을 내리고, 최종 리포트에서 사용자 판단 필요 항목과 후속 보완 지점을 정리한다.
+단, force push, 브랜치 삭제, secrets 처리, 치명적 실행 실패는 계속 즉시 중단 대상이다.
 
 ## 금지
 

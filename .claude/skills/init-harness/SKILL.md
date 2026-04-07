@@ -56,7 +56,8 @@ user-invocable: true
 
 - `automation_mode`, `allow_midway_user_prompt`, `final_report_only`
 - `preapproval_enforcement`, `risk_enforcement`, `unresolved_config_enforcement` (`report`/`block`)
-- `allow_auto_push` (full-auto에서 push 자동 허용 여부)
+- `auto_commit_on_success`, `auto_push_on_success`
+- `allow_auto_push` (기본값은 false. 개발 후 전략과 분리할지 여부)
 - `engine_runtime_mode`, `allow_engine_stub` (엔진 실행 실패 시 stub 허용 정책)
 - `execute_engine_commands` (실제 엔진 CLI 실행 여부)
 - `max_fix_attempts_per_gate`, `max_autopilot_cycles`

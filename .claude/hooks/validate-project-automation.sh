@@ -18,6 +18,8 @@ required_keys=(
   "preapproval_enforcement"
   "risk_enforcement"
   "unresolved_config_enforcement"
+  "auto_commit_on_success"
+  "auto_push_on_success"
   "allow_auto_push"
   "engine_runtime_mode"
   "allow_engine_stub"
@@ -72,7 +74,7 @@ if [ "$automation_mode" != "full-auto" ] && [ "$automation_mode" != "assisted-au
   exit 2
 fi
 
-for bool_key in allow_midway_user_prompt final_report_only auto_start_autopilot_on_ready run_gates_on_commit run_gates_on_push run_quality_on_commit run_quality_on_push enable_quality_gates allow_engine_stub execute_engine_commands; do
+for bool_key in allow_midway_user_prompt final_report_only auto_start_autopilot_on_ready auto_commit_on_success auto_push_on_success run_gates_on_commit run_gates_on_push run_quality_on_commit run_quality_on_push enable_quality_gates allow_engine_stub execute_engine_commands; do
   val=$(get_value "$bool_key")
   if [ "$val" != "true" ] && [ "$val" != "false" ]; then
     echo "project-automation 검증 실패: ${bool_key}는 true 또는 false여야 합니다." >&2
@@ -89,12 +91,13 @@ for mode_key in preapproval_enforcement risk_enforcement unresolved_config_enfor
 done
 
 allow_auto_push=$(get_value "allow_auto_push")
+auto_commit_on_success=$(get_value "auto_commit_on_success")
 if [ "$allow_auto_push" != "true" ] && [ "$allow_auto_push" != "false" ]; then
   echo "project-automation 검증 실패: allow_auto_push는 true 또는 false여야 합니다." >&2
   exit 2
 fi
-if [ "$automation_mode" = "full-auto" ] && [ "$allow_auto_push" != "true" ]; then
-  echo "project-automation 검증 실패: full-auto 모드에서는 allow_auto_push=true가 필요합니다." >&2
+if [ "$automation_mode" = "full-auto" ] && [ "$auto_commit_on_success" != "true" ]; then
+  echo "project-automation 검증 실패: full-auto 모드에서는 auto_commit_on_success=true가 필요합니다." >&2
   exit 2
 fi
 

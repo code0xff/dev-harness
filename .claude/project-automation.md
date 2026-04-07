@@ -12,7 +12,9 @@
 - preapproval_enforcement: report
 - risk_enforcement: report
 - unresolved_config_enforcement: report
-- allow_auto_push: true
+- auto_commit_on_success: true
+- auto_push_on_success: false
+- allow_auto_push: false
 - engine_runtime_mode: strict
 - allow_engine_stub: false
 - execute_engine_commands: true
@@ -30,8 +32,8 @@
 
 ## Engine Adapter Commands (optional)
 
-- engine_cmd_codex: codex --help >/dev/null
-- engine_cmd_claude: claude --help >/dev/null
+- engine_cmd_codex: .claude/hooks/run-codex-intent.sh {intent} {goal} {model}
+- engine_cmd_claude: .claude/hooks/run-claude-intent.sh {intent} {goal} {model}
 - engine_cmd_openai: unset
 - engine_cmd_cursor: unset
 - engine_cmd_gemini: unset

@@ -205,16 +205,19 @@ set_automation_key "quality_coverage_cmd" "$quality_coverage_cmd"
 set_automation_key "quality_perf_cmd" "$quality_perf_cmd"
 set_automation_key "quality_architecture_cmd" "$quality_architecture_cmd"
 set_automation_if_unset "auto_start_autopilot_on_ready" "true"
+set_automation_if_unset "auto_commit_on_success" "true"
+set_automation_if_unset "auto_push_on_success" "false"
+set_automation_if_unset "allow_auto_push" "false"
 
 # 3) engine adapter 커맨드 자동 설정
 if command -v codex >/dev/null 2>&1; then
-  set_automation_key "engine_cmd_codex" 'codex --help >/dev/null'
+  set_automation_key "engine_cmd_codex" '.claude/hooks/run-codex-intent.sh {intent} {goal} {model}'
 else
   set_automation_key "engine_cmd_codex" "unset"
 fi
 
 if command -v claude >/dev/null 2>&1; then
-  set_automation_key "engine_cmd_claude" 'claude --help >/dev/null'
+  set_automation_key "engine_cmd_claude" '.claude/hooks/run-claude-intent.sh {intent} {goal} {model}'
 else
   set_automation_key "engine_cmd_claude" "unset"
 fi

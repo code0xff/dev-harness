@@ -61,6 +61,7 @@ workstream 기반 개발을 하는 프로젝트에서 적용한다:
 
 - 중간 승인 없이 진행 가능한 범위는 `project-approvals.md`를 기준으로 한다.
 - gate 실행/재시도/중단 기준은 `project-automation.md` 값으로 강제한다.
+- report enforcement 조합에서는 개발 중 판단이 필요한 항목도 우선 진행하고, 사용자 확인은 최종 리포트에서 후속 보완 항목으로 다룬다.
 
 ## Workstream Completion Verification
 

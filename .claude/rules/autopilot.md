@@ -6,6 +6,8 @@
 
 `plan -> implement -> validate -> review -> quality -> repeat`
 
+완료 직전에는 `delivery` 단계에서 done-check와 자동 커밋을 수행한다. push/배포는 기본적으로 개발 후 전략으로 분리한다.
+
 - validate는 `project-automation.md`의 gate 명령을 따른다.
 - plan/implement/review는 `project-automation.md`의 `plan_cmd`, `implement_cmd`, `review_cmd`를 따른다.
 - full-auto 모드에서는 `/plan`이 roadmap 전체 workstream 설계를 먼저 확정하고, implement 단계는 그 순서를 따라 연속 실행한다.
@@ -14,6 +16,8 @@
 - quality는 `quality_cmd`와 선택적인 `quality_coverage/perf/architecture` 명령을 따른다.
 - gate 실패 시 원인 분석 후 자동 수정한다.
 - 수정 후 같은 gate를 재실행한다.
+- 검증이 끝난 변경은 `auto_commit_on_success=true`일 때 자동 커밋한다.
+- `allow_auto_push=true`와 `auto_push_on_success=true`를 명시적으로 켠 경우에만 upstream이 있는 브랜치에 자동 push를 시도한다.
 - 실행 상태는 `.claude/state/autopilot-state.json`에 기록한다.
 - 중단/실패 후 재개 시 `last_stage` 다음 단계부터 시작한다.
 - 자동 재개 실행은 `.claude/hooks/run-autopilot.sh resume`를 사용한다.

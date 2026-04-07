@@ -13,7 +13,7 @@ curl -fsSL https://raw.githubusercontent.com/code0xff/dev-harness/main/scripts/b
 ```
 
 이 명령은 `dev-harness`를 자동으로 내려받아 실행 권한을 맞추고 온보딩 훅을 1회 실행한다.
-이후 Claude에서 `/init-project`를 실행하면 목표/스택 확정과 문서/정책 동기화가 자동으로 완료되고, 준비가 끝나면 autopilot이 `/plan -> build`를 이어서 수행한다.
+이후 Claude에서 `/init-project`를 실행하면 목표/스택 확정과 문서/정책 동기화가 자동으로 완료되고, 준비가 끝나면 autopilot이 `/plan -> build`를 이어서 수행한다. 기본 목표는 remote 없이 로컬 개발을 끝까지 완주하는 것이다.
 
 `session.yaml`을 수동으로 편집한 경우에만 아래 명령으로 동기화를 다시 실행한다.
 
@@ -84,6 +84,7 @@ cp -r .devharness/ /path/to/your-project/.devharness/
 ```
 
 `/autopilot`의 첫 단계인 `/plan`은 roadmap의 모든 workstream을 먼저 설계하고, 이후 build 단계가 그 순서대로 구현을 이어간다.
+기본 `full-auto` 정책은 로컬 개발 완주와 자동 커밋까지를 범위로 두고, push/배포는 개발 후 별도 전략으로 분리한다.
 `/workstream`은 구현, 커밋, 코드 리뷰를 내부에서 순차 수행한다. 변경 크기에 따라 경량 리뷰(빌드+테스트만) 또는 전체 리뷰(`/codex-review` + `/self-review`)를 선택한다. 리뷰를 별도로 실행하려면 `/workstream` 없이 직접 호출한다.
 
 여기서 `roadmap`은 프로젝트 전체 순서와 범위를 정의하는 상위 계획이고, `workstream`은 그 roadmap을 구성하는 개별 실행 단위다. 작은 프로젝트는 `docs/roadmap.md` 하나로 충분하지만, 필요하면 `docs/workstreams/` 아래에 단계별 문서를 분리해도 된다.
@@ -134,6 +135,7 @@ cp -r .devharness/ /path/to/your-project/.devharness/
 이 명령은 gate/quality/engine adapter 기본값과 approvals allowlist를 자동으로 채운다.
 또한 completion contract를 현재 게이트 명령 기준으로 자동 연결한다.
 또한 stage/fix 기본 명령(`implement_cmd`, `review_cmd`, `*_fix_cmd`)을 자동 연결한다.
+또한 실제 intent 실행용 engine adapter 템플릿과 autopilot 로컬 완주 기본 정책을 자동 채운다.
 
 새 프로젝트 온보딩(문서 생성 + 정책 검증 + ready 리포트)은 아래 명령으로 한 번에 수행한다.
 
@@ -195,6 +197,7 @@ stage 실행과 복구에는 fallback 체인이 적용된다.
 - `implement`: stage command → inferred command(build/test) → engine intent
 - `review`: stage command → inferred command(quality/test) → engine intent
 - gate fix: `<gate>_fix_cmd` → gate command → `implement_cmd` → gate 재감지
+- delivery: done-check → auto commit
 
 ## CI Enforcement
 

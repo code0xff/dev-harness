@@ -89,11 +89,14 @@ run_expect_ok "pre-approval report-only for chained command bypass" sh -c \
 run_expect_ok "automation gates push" .claude/hooks/run-automation-gates.sh push
 run_expect_ok "quality gates push" .claude/hooks/run-quality-gates.sh push
 run_expect_ok "engine readiness check" .claude/hooks/check-engine-readiness.sh
-run_expect_ok "engine intent fallback plan" .claude/hooks/run-engine-intent.sh plan "ci-intent"
+run_expect_ok "engine intent fallback plan" sh -c \
+  'DEV_HARNESS_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "ci-intent"'
 run_expect_ok "done check report-only" .claude/hooks/run-done-check.sh
 
-run_expect_ok "autopilot start" .claude/hooks/run-autopilot.sh start "ci-regression"
-run_expect_ok "autopilot resume completed" .claude/hooks/run-autopilot.sh resume
+run_expect_ok "autopilot start" sh -c \
+  'DEV_HARNESS_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-regression"'
+run_expect_ok "autopilot resume completed" sh -c \
+  'DEV_HARNESS_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh resume'
 
 run_expect_ok "autopilot state completed" sh -c \
   'test "$(jq -r ".status" .claude/state/autopilot-state.json)" = "completed"'
@@ -115,7 +118,7 @@ selected_stack: bash
 open_questions: unset
 decisions: unset
 EOF
-.claude/hooks/run-project-onboarding.sh >/dev/null &&
+DEV_HARNESS_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-project-onboarding.sh >/dev/null &&
 test "$(jq -r ".status" .claude/state/autopilot-state.json)" = "completed"'
 run_expect_ok "bootstrap project helper" scripts/bootstrap-project.sh --skip-onboarding
 run_expect_ok "bootstrap project standalone install" sh -c \

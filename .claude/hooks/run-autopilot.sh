@@ -57,6 +57,37 @@ get_value() {
   grep -E "^- ${key}:" "$AUTOMATION_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true
 }
 
+has_worktree_changes() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return 1
+  fi
+  if ! git diff --quiet --ignore-submodules --; then
+    return 0
+  fi
+  if ! git diff --cached --quiet --ignore-submodules --; then
+    return 0
+  fi
+  if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    return 0
+  fi
+  return 1
+}
+
+has_upstream_branch() {
+  git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1
+}
+
+build_commit_message() {
+  local goal="$1"
+  local normalized
+  normalized="$(printf '%s' "$goal" | tr '\n' ' ' | sed -E 's/\[[^]]+\]//g; s/[^[:alnum:][:space:]_.\/-]+/ /g; s/[[:space:]]+/ /g; s/^ //; s/ $//')"
+  normalized="$(printf '%s' "$normalized" | cut -c1-64)"
+  if [ -z "$normalized" ]; then
+    normalized="validated changes"
+  fi
+  printf 'chore: autopilot apply %s' "$normalized"
+}
+
 infer_stage_cmd() {
   local stage="$1"
   case "$stage" in
@@ -213,6 +244,68 @@ run_quality_stage() {
   return 2
 }
 
+run_delivery_stage() {
+  local goal="$1"
+  local unset_enforcement="$2"
+  local auto_commit auto_push allow_auto_push commit_message done_report unset_report
+
+  "$STATE_HOOK" checkpoint "delivery" "run completion contract checks"
+  done_report="$("$DONE_CHECK_HOOK")"
+  if [ -n "$done_report" ]; then
+    echo "$done_report" >&2
+  fi
+
+  unset_report="$("$UNSET_REPORT_HOOK" || true)"
+  if [ "$unset_enforcement" = "block" ] && echo "$unset_report" | grep -q '^unset_count=[1-9]'; then
+    "$STATE_HOOK" fail "unset_config_blocked"
+    echo "run-autopilot 실패: unresolved_config_enforcement=block 이며 unset key가 남아 있습니다." >&2
+    echo "$unset_report" >&2
+    return 2
+  fi
+  if [ "$unset_enforcement" = "report" ] && echo "$unset_report" | grep -q '^unset_count=[1-9]'; then
+    echo "run-autopilot 보고: 미확정 설정이 남아 있습니다." >&2
+    echo "$unset_report" >&2
+  fi
+
+  if [ "${AUTOPILOT_SKIP_VCS_WRITE:-false}" = "true" ]; then
+    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (AUTOPILOT_SKIP_VCS_WRITE=true)"
+    return 0
+  fi
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (not a git worktree)"
+    return 0
+  fi
+
+  auto_commit="$(get_value "auto_commit_on_success")"
+  auto_push="$(get_value "auto_push_on_success")"
+  allow_auto_push="$(get_value "allow_auto_push")"
+
+  if [ "$auto_commit" = "true" ] && has_worktree_changes; then
+    "$STATE_HOOK" checkpoint "delivery" "stage all changes"
+    git add -A
+
+    if has_worktree_changes; then
+      commit_message="$(build_commit_message "$goal")"
+      "$STATE_HOOK" checkpoint "delivery" "git commit -m \"$commit_message\""
+      git commit -m "$commit_message"
+    fi
+  fi
+
+  if [ "$allow_auto_push" = "true" ] && [ "$auto_push" = "true" ]; then
+    if has_upstream_branch; then
+      "$STATE_HOOK" checkpoint "delivery" "git push"
+      git push
+    else
+      "$STATE_HOOK" checkpoint "delivery" "skip push (no upstream branch configured)"
+    fi
+  else
+    "$STATE_HOOK" checkpoint "delivery" "skip push (post-development strategy)"
+  fi
+
+  return 0
+}
+
 run_sequence_from() {
   local start_stage="$1"
   local plan_cmd="$2"
@@ -224,19 +317,22 @@ run_sequence_from() {
   local stages=()
   case "$start_stage" in
     plan)
-      stages=(plan implement validate review quality)
+      stages=(plan implement validate review quality delivery)
       ;;
     implement)
-      stages=(implement validate review quality)
+      stages=(implement validate review quality delivery)
       ;;
     validate)
-      stages=(validate review quality)
+      stages=(validate review quality delivery)
       ;;
     review)
-      stages=(review quality)
+      stages=(review quality delivery)
       ;;
     quality)
-      stages=(quality)
+      stages=(quality delivery)
+      ;;
+    delivery)
+      stages=(delivery)
       ;;
     *)
       echo "run-autopilot 실패: 알 수 없는 stage='$start_stage'" >&2
@@ -262,6 +358,9 @@ run_sequence_from() {
       quality)
         run_quality_stage || return 2
         ;;
+      delivery)
+        run_delivery_stage "$goal" "$UNSET_ENFORCEMENT" || return 2
+        ;;
     esac
   done
 }
@@ -275,6 +374,7 @@ max_cycles=$(get_value "max_autopilot_cycles")
 max_fix_attempts=$(get_value "max_fix_attempts_per_gate")
 unset_enforcement=$(get_value "unresolved_config_enforcement")
 unset_enforcement=${unset_enforcement:-report}
+UNSET_ENFORCEMENT="$unset_enforcement"
 plan_cmd=$(get_value "plan_cmd")
 implement_cmd=$(get_value "implement_cmd")
 review_cmd=$(get_value "review_cmd")
@@ -316,23 +416,6 @@ esac
 while [ "$cycle" -le "$max_cycles" ]; do
   "$STATE_HOOK" cycle "$cycle"
   if run_sequence_from "$start_stage" "$plan_cmd" "$implement_cmd" "$review_cmd" "$GOAL" "$max_fix_attempts"; then
-    "$STATE_HOOK" checkpoint "done-check" "run completion contract checks"
-    done_report="$("$DONE_CHECK_HOOK")"
-    if [ -n "$done_report" ]; then
-      echo "$done_report" >&2
-    fi
-
-    unset_report="$("$UNSET_REPORT_HOOK" || true)"
-    if [ "$unset_enforcement" = "block" ] && echo "$unset_report" | grep -q '^unset_count=[1-9]'; then
-      "$STATE_HOOK" fail "unset_config_blocked"
-      echo "run-autopilot 실패: unresolved_config_enforcement=block 이며 unset key가 남아 있습니다." >&2
-      echo "$unset_report" >&2
-      exit 2
-    fi
-    if [ "$unset_enforcement" = "report" ] && echo "$unset_report" | grep -q '^unset_count=[1-9]'; then
-      echo "run-autopilot 보고: 미확정 설정이 남아 있습니다." >&2
-      echo "$unset_report" >&2
-    fi
     "$STATE_HOOK" complete
     echo "run-autopilot: completed (cycle=$cycle)"
     exit 0
@@ -341,7 +424,7 @@ while [ "$cycle" -le "$max_cycles" ]; do
   cycle=$((cycle + 1))
   start_stage="$(jq -r '.last_stage // "implement"' "$STATE_FILE")"
   case "$start_stage" in
-    plan|implement|validate|review|quality) ;;
+    plan|implement|validate|review|quality|delivery) ;;
     *) start_stage="implement" ;;
   esac
 done

@@ -25,6 +25,10 @@ get_automation_value() {
   grep -E "^- ${key}:" "$AUTOMATION_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//"
 }
 
+shell_quote() {
+  printf "%q" "$1"
+}
+
 INTENT="${1:-}"
 GOAL="${2:-autopilot-goal}"
 if [ "$INTENT" != "plan" ] && [ "$INTENT" != "build" ] && [ "$INTENT" != "review" ]; then
@@ -59,10 +63,15 @@ prompt="[intent=${INTENT}] goal=${GOAL}"
 cmd=""
 
 if [ -n "$adapter_cmd" ] && [ "$adapter_cmd" != "unset" ]; then
+  quoted_intent="$(shell_quote "$INTENT")"
+  quoted_goal="$(shell_quote "$GOAL")"
+  quoted_model="$(shell_quote "$model")"
+  quoted_prompt="$(shell_quote "$prompt")"
   cmd="$(echo "$adapter_cmd" | sed \
-    -e "s/{intent}/${INTENT}/g" \
-    -e "s/{goal}/${GOAL}/g" \
-    -e "s/{model}/${model}/g")"
+    -e "s/{intent}/${quoted_intent}/g" \
+    -e "s/{goal}/${quoted_goal}/g" \
+    -e "s/{model}/${quoted_model}/g" \
+    -e "s/{prompt}/${quoted_prompt}/g")"
 else
   case "$engine" in
     codex)
