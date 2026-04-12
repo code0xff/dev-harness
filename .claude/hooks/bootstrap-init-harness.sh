@@ -292,6 +292,7 @@ fi
 build_cmd="$(get_automation_value build_cmd)"
 test_cmd="$(get_automation_value test_cmd)"
 quality_cmd="$(get_automation_value quality_cmd)"
+set_automation_if_unset "plan_cmd" '.claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"'
 if [ "$build_cmd" != "unset" ]; then
   set_automation_if_unset "implement_cmd" "$build_cmd"
 fi
@@ -314,6 +315,13 @@ if [ "$lint_cmd" != "unset" ]; then
 fi
 if [ "$security_cmd" != "unset" ]; then
   set_automation_if_unset "security_fix_cmd" "$security_cmd"
+fi
+
+# legacy migration: plan 단계에서 onboarding 재실행을 제거한다.
+legacy_plan_cmd='.claude/hooks/run-project-onboarding.sh && .claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"'
+current_plan_cmd="$(get_automation_value plan_cmd)"
+if [ "$current_plan_cmd" = "$legacy_plan_cmd" ]; then
+  set_automation_key "plan_cmd" '.claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"'
 fi
 
 # 5) approvals allowlist 자동 보강

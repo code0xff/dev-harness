@@ -139,6 +139,54 @@ run_expect_ok "quality gates push" .claude/hooks/run-quality-gates.sh push
 run_expect_ok "engine readiness check" .claude/hooks/check-engine-readiness.sh
 run_expect_ok "engine intent fallback plan" sh -c \
   'NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "ci-intent"'
+run_expect_ok "engine intent preserves spaced goal as single arg" sh -c '
+tmpdir=$(mktemp -d)
+mkdir -p "$tmpdir/.claude/hooks" "$tmpdir/.claude/state/intents"
+cp .claude/hooks/run-engine-intent.sh "$tmpdir/.claude/hooks/run-engine-intent.sh"
+cat > "$tmpdir/.claude/hooks/echo-plan.sh" <<'"'"'EOF'"'"'
+#!/bin/bash
+echo "## Goal And Constraints"
+echo "- argc=$#"
+echo "- arg1=${1:-}"
+echo "- arg2=${2:-}"
+echo "- arg3=${3:-}"
+echo "## Approach"
+echo "- ok"
+echo "## Implementation Plan"
+echo "1. noop"
+echo "## Uncertainties"
+echo "- none"
+EOF
+chmod +x "$tmpdir/.claude/hooks/run-engine-intent.sh" "$tmpdir/.claude/hooks/echo-plan.sh"
+cat > "$tmpdir/.claude/project-profile.md" <<'"'"'EOF'"'"'
+- plan_engine: claude
+- build_engine: claude
+- review_engine: claude
+- plan_model: unset
+- build_model: unset
+- review_model: unset
+EOF
+cat > "$tmpdir/.claude/project-automation.md" <<'"'"'EOF'"'"'
+- engine_runtime_mode: strict
+- allow_engine_stub: false
+- execute_engine_commands: true
+- intent_retry_attempts: 1
+- intent_timeout_seconds: 0
+- engine_cmd_claude: ./.claude/hooks/echo-plan.sh {intent} {goal} {model}
+- engine_cmd_codex: unset
+- engine_cmd_openai: unset
+- engine_cmd_cursor: unset
+- engine_cmd_gemini: unset
+- engine_cmd_copilot: unset
+EOF
+(cd "$tmpdir" && ./.claude/hooks/run-engine-intent.sh plan "fix bootstrap argument split" >/dev/null)
+artifact=$(find "$tmpdir/.claude/state/intents" -type f -name "plan-*.md" | head -n 1)
+grep -q "^- argc=3$" "$artifact" &&
+grep -q "^- arg2=fix bootstrap argument split$" "$artifact" &&
+grep -q "^- arg3=unset$" "$artifact"
+result=$?
+rm -rf "$tmpdir"
+exit $result'
 run_expect_ok "qa check test mode" sh -c \
   'NIGHTWALKER_TEST_MODE=true .claude/hooks/run-qa-check.sh "ci-qa" >/dev/null'
 run_expect_ok "done check report-only" .claude/hooks/run-done-check.sh

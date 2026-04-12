@@ -67,6 +67,30 @@ get_value() {
   grep -E "^- ${key}:" "$AUTOMATION_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true
 }
 
+normalize_plan_cmd() {
+  local cmd="$1"
+  local legacy_prefix=".claude/hooks/run-project-onboarding.sh"
+  local trimmed
+
+  trimmed="$(echo "$cmd" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+  if [ -z "$trimmed" ] || [ "$trimmed" = "unset" ]; then
+    echo "unset"
+    return 0
+  fi
+
+  if [ "$trimmed" = "$legacy_prefix" ]; then
+    echo "unset"
+    return 0
+  fi
+
+  if [[ "$trimmed" == "$legacy_prefix && "* ]]; then
+    echo "${trimmed#${legacy_prefix} && }"
+    return 0
+  fi
+
+  echo "$trimmed"
+}
+
 has_worktree_changes() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     return 1
@@ -427,6 +451,12 @@ plan_cmd=$(get_value "plan_cmd")
 implement_cmd=$(get_value "implement_cmd")
   review_cmd=$(get_value "review_cmd")
 qa_cmd=$(get_value "qa_cmd")
+
+normalized_plan_cmd="$(normalize_plan_cmd "$plan_cmd")"
+if [ "$plan_cmd" != "$normalized_plan_cmd" ]; then
+  echo "run-autopilot 경고: legacy plan_cmd에서 run-project-onboarding.sh를 제외하고 실행합니다." >&2
+fi
+plan_cmd="$normalized_plan_cmd"
 
 cycle=1
 start_stage="plan"

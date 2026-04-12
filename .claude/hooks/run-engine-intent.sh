@@ -29,6 +29,10 @@ shell_quote() {
   printf "%q" "$1"
 }
 
+sed_escape_replacement() {
+  printf '%s' "$1" | sed -e 's/[\\/&]/\\&/g'
+}
+
 validate_intent_artifact() {
   local intent="$1"
   local artifact="$2"
@@ -103,15 +107,19 @@ if [ -n "$adapter_cmd" ] && [ "$adapter_cmd" != "unset" ]; then
   quoted_goal="$(shell_quote "$GOAL")"
   quoted_model="$(shell_quote "$model")"
   quoted_prompt="$(shell_quote "$prompt")"
-  cmd="$(echo "$adapter_cmd" | sed \
-    -e "s/{intent}/${quoted_intent}/g" \
-    -e "s/{goal}/${quoted_goal}/g" \
-    -e "s/{model}/${quoted_model}/g" \
-    -e "s/{prompt}/${quoted_prompt}/g")"
+  esc_intent="$(sed_escape_replacement "$quoted_intent")"
+  esc_goal="$(sed_escape_replacement "$quoted_goal")"
+  esc_model="$(sed_escape_replacement "$quoted_model")"
+  esc_prompt="$(sed_escape_replacement "$quoted_prompt")"
+  cmd="$(printf '%s' "$adapter_cmd" | sed \
+    -e "s/{intent}/${esc_intent}/g" \
+    -e "s/{goal}/${esc_goal}/g" \
+    -e "s/{model}/${esc_model}/g" \
+    -e "s/{prompt}/${esc_prompt}/g")"
 else
   case "$engine" in
     codex)
-      cmd="codex exec \"$prompt\""
+      cmd="codex exec --skip-git-repo-check \"$prompt\""
       ;;
     claude)
       cmd="claude -p \"$prompt\""

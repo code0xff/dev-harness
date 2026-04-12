@@ -29,7 +29,7 @@
 
 ## Stage Commands
 
-- plan_cmd: .claude/hooks/run-project-onboarding.sh && .claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"
+- plan_cmd: .claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"
 - implement_cmd: .claude/hooks/run-build-steps.sh "${AUTOPILOT_GOAL:-autopilot-goal}"
 - review_cmd: .claude/hooks/run-engine-intent.sh review "${AUTOPILOT_GOAL:-autopilot-goal}"
 - qa_cmd: .claude/hooks/run-qa-check.sh "${AUTOPILOT_GOAL:-autopilot-goal}"

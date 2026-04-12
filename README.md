@@ -9,6 +9,9 @@ AI 개발 워크플로우를 위한 harness rules/skills 모음.
 
 ```bash
 mkdir my-project && cd my-project
+```
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/code0xff/nightwalker/main/scripts/bootstrap-project.sh | bash
 ```
 

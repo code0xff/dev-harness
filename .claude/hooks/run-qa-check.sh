@@ -179,9 +179,9 @@ prompt="$(build_prompt)"
 case "$engine" in
   codex)
     if [ "$model" != "unset" ]; then
-      codex exec --model "$model" "$prompt" > "$REPORT_FILE"
+      codex exec --skip-git-repo-check --model "$model" "$prompt" > "$REPORT_FILE"
     else
-      codex exec "$prompt" > "$REPORT_FILE"
+      codex exec --skip-git-repo-check "$prompt" > "$REPORT_FILE"
     fi
     ;;
   claude)

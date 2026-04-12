@@ -322,9 +322,9 @@ case "$codex_mode" in
     # CLI fallback: codex exec 직접 호출
     PROMPT="$(build_cli_prompt "$INTENT" "$GOAL")"
     if [ "$MODEL" != "unset" ]; then
-      codex exec --model "$MODEL" "$PROMPT"
+      codex exec --skip-git-repo-check --model "$MODEL" "$PROMPT"
     else
-      codex exec "$PROMPT"
+      codex exec --skip-git-repo-check "$PROMPT"
     fi
     ;;
   none)
