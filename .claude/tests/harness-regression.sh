@@ -202,7 +202,24 @@ run_expect_ok "autopilot followups recorded" sh -c \
   'test "$(jq ".manual_followups | length" .claude/state/autopilot-state.json)" -ge 1'
 run_expect_ok "final report generated" test -f .claude/state/final-report.md
 run_expect_ok "unset config report generated" .claude/hooks/report-unset-config.sh
-run_expect_ok "render onboarding docs" .claude/hooks/render-onboarding-docs.sh
+run_expect_ok "render onboarding docs" sh -c '
+mkdir -p .nightwalker
+cat > .nightwalker/session.yaml <<'"'"'EOF'"'"'
+schema_version: 1
+status: proposed
+project_goal: ci regression goal
+target_users: internal developers
+core_features: auth and dashboard
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+EOF
+.claude/hooks/render-onboarding-docs.sh >/dev/null'
 run_expect_ok "render onboarding docs system-platform" sh -c '
 mkdir -p .nightwalker
 cat > .nightwalker/session.yaml <<'"'"'EOF'"'"'
