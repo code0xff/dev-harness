@@ -3,6 +3,7 @@
     "allow": [
       "WebSearch",
       "WebFetch",
+      "Bash(*)",
       "Bash(git:*)",
       "Bash(npm:*)",
       "Bash(npx:*)",
