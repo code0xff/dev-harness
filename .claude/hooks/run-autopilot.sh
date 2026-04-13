@@ -278,6 +278,32 @@ run_quality_stage() {
   return 2
 }
 
+run_verify_stage() {
+  local max_fix_attempts="$1"
+  local verify_cmd="$2"
+  local implement_cmd="$3"
+  local attempt=1
+
+  while [ "$attempt" -le "$max_fix_attempts" ]; do
+    "$STATE_HOOK" checkpoint "verify" "run verify attempt=${attempt}"
+    if eval "$verify_cmd"; then
+      "$STATE_HOOK" checkpoint "verify" "ok"
+      return 0
+    fi
+
+    "$STATE_HOOK" checkpoint "fix" "verify attempt=${attempt} cmd=${implement_cmd}"
+    if ! eval "$implement_cmd"; then
+      "$STATE_HOOK" fail "stage=fix source=verify attempt=${attempt}"
+      return 2
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  "$STATE_HOOK" fail "stage=verify retries_exceeded"
+  return 2
+}
+
 run_qa_stage() {
   local goal="$1"
   local qa_cmd="$2"
@@ -375,21 +401,25 @@ run_sequence_from() {
   local start_stage="$1"
   local plan_cmd="$2"
   local implement_cmd="$3"
-  local review_cmd="$4"
-  local qa_cmd="$5"
-  local goal="$6"
-  local max_fix_attempts="$7"
+  local verify_cmd="$4"
+  local review_cmd="$5"
+  local qa_cmd="$6"
+  local goal="$7"
+  local max_fix_attempts="$8"
 
   local stages=()
   case "$start_stage" in
     plan)
-      stages=(plan implement validate review quality qa delivery)
+      stages=(plan implement validate verify review quality qa delivery)
       ;;
     implement)
-      stages=(implement validate review quality qa delivery)
+      stages=(implement validate verify review quality qa delivery)
       ;;
     validate)
-      stages=(validate review quality qa delivery)
+      stages=(validate verify review quality qa delivery)
+      ;;
+    verify)
+      stages=(verify review quality qa delivery)
       ;;
     review)
       stages=(review quality qa delivery)
@@ -421,6 +451,9 @@ run_sequence_from() {
       validate)
         run_validate_stage "$max_fix_attempts" "$implement_cmd" || return 2
         ;;
+      verify)
+        run_verify_stage "$max_fix_attempts" "$verify_cmd" "$implement_cmd" || return 2
+        ;;
       review)
         run_stage_with_fallback "review" "$review_cmd" "review" "$goal" || return 2
         ;;
@@ -449,7 +482,8 @@ unset_enforcement=${unset_enforcement:-report}
 UNSET_ENFORCEMENT="$unset_enforcement"
 plan_cmd=$(get_value "plan_cmd")
 implement_cmd=$(get_value "implement_cmd")
-  review_cmd=$(get_value "review_cmd")
+verify_cmd=$(get_value "verify_cmd")
+review_cmd=$(get_value "review_cmd")
 qa_cmd=$(get_value "qa_cmd")
 
 normalized_plan_cmd="$(normalize_plan_cmd "$plan_cmd")"
@@ -494,7 +528,7 @@ esac
 
 while [ "$cycle" -le "$max_cycles" ]; do
   "$STATE_HOOK" cycle "$cycle"
-  if run_sequence_from "$start_stage" "$plan_cmd" "$implement_cmd" "$review_cmd" "$qa_cmd" "$GOAL" "$max_fix_attempts"; then
+  if run_sequence_from "$start_stage" "$plan_cmd" "$implement_cmd" "$verify_cmd" "$review_cmd" "$qa_cmd" "$GOAL" "$max_fix_attempts"; then
     "$STATE_HOOK" complete
     echo "run-autopilot: completed (cycle=$cycle)"
     exit 0
@@ -503,7 +537,7 @@ while [ "$cycle" -le "$max_cycles" ]; do
   cycle=$((cycle + 1))
   start_stage="$(jq -r '.last_stage // "implement"' "$STATE_FILE")"
   case "$start_stage" in
-    plan|implement|validate|review|quality|qa|delivery) ;;
+    plan|implement|validate|verify|review|quality|qa|delivery) ;;
     *) start_stage="implement" ;;
   esac
 done

@@ -47,11 +47,12 @@ cleanup() {
   rm -f .devharness/session.yaml
   rmdir .devharness 2>/dev/null || true
   rm -f .claude/state/autopilot-state.json
+  rm -f .claude/state/verify-report.md
   rm -f .claude/state/qa-report.md
   rm -f .claude/state/final-report.md
   rm -f .claude/state/qa-registry.json
   rm -f ONBOARDING_READY.md
-  rm -f docs/project-goal.md docs/scope.md docs/architecture.md docs/stack-decision.md docs/roadmap.md docs/execution-plan.md
+  rm -f docs/project-goal.md docs/scope.md docs/architecture.md docs/stack-decision.md docs/acceptance-criteria.md docs/roadmap.md docs/execution-plan.md
   rm -rf docs/workstreams
   rmdir docs 2>/dev/null || true
   rm -f "$AUTOMATION_BAK" "$APPROVALS_BAK"
@@ -150,6 +151,8 @@ echo "- argc=$#"
 echo "- arg1=${1:-}"
 echo "- arg2=${2:-}"
 echo "- arg3=${3:-}"
+echo "## Acceptance Criteria"
+echo "- captured"
 echo "## Approach"
 echo "- ok"
 echo "## Implementation Plan"
@@ -189,6 +192,8 @@ rm -rf "$tmpdir"
 exit $result'
 run_expect_ok "qa check test mode" sh -c \
   'NIGHTWALKER_TEST_MODE=true .claude/hooks/run-qa-check.sh "ci-qa" >/dev/null'
+run_expect_ok "verify check test mode" sh -c \
+  'NIGHTWALKER_TEST_MODE=true .claude/hooks/run-verify-check.sh "ci-verify" >/dev/null'
 run_expect_ok "done check report-only" .claude/hooks/run-done-check.sh
 
 run_expect_ok "autopilot start" sh -c \
@@ -220,6 +225,7 @@ open_questions: unset
 decisions: unset
 EOF
 .claude/hooks/render-onboarding-docs.sh >/dev/null'
+run_expect_ok "acceptance criteria doc generated" test -f docs/acceptance-criteria.md
 run_expect_ok "render onboarding docs system-platform" sh -c '
 mkdir -p .nightwalker
 cat > .nightwalker/session.yaml <<'"'"'EOF'"'"'
@@ -237,12 +243,13 @@ selected_stack: kafka
 open_questions: unset
 decisions: unset
 EOF
-result=0
-.claude/hooks/render-onboarding-docs.sh >/dev/null &&
-grep -q "System Boundary" docs/architecture.md &&
-grep -q "Interface And Protocol Contract" docs/architecture.md &&
-grep -q "Failure Mode And Recovery" docs/architecture.md &&
-grep -q "interface contracts" docs/roadmap.md || result=1
+	result=0
+	.claude/hooks/render-onboarding-docs.sh >/dev/null &&
+	grep -q "System Boundary" docs/architecture.md &&
+	grep -q "Interface And Protocol Contract" docs/architecture.md &&
+	grep -q "Failure Mode And Recovery" docs/architecture.md &&
+	grep -q "Operational Acceptance Criteria" docs/acceptance-criteria.md &&
+	grep -q "interface contracts" docs/roadmap.md || result=1
 cat > .nightwalker/session.yaml <<'"'"'RESET'"'"'
 schema_version: 1
 status: proposed
@@ -328,6 +335,10 @@ run_expect_ok "claude intent build includes plan artifact" sh -c '
 NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "ctx-test" >/dev/null
 out="$(NIGHTWALKER_TEST_MODE=true .claude/hooks/run-claude-intent.sh build "ctx-test")"
 echo "$out" | grep -q "Build Changes"'
+run_expect_ok "engine intent plan artifact includes acceptance heading" sh -c '
+NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "ctx-acceptance" >/dev/null
+artifact="$(find .claude/state/intents -type f -name "plan-*.md" | sort | tail -n 1)"
+grep -q "^## Acceptance Criteria$" "$artifact"'
 run_expect_ok "codex intent review includes build artifact" sh -c '
 NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "ctx-test2" >/dev/null
 NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh build "ctx-test2" >/dev/null
@@ -359,6 +370,56 @@ echo "$out" | grep -q "step 2" &&
 echo "$out" | grep -q "step 3" &&
 echo "$out" | grep -q "all 3 steps passed"
 rm -f .claude/state/intents/plan-9999999999-99999.md'
+run_expect_ok "build-steps parallel-safe mode batches independent steps" sh -c '
+tmpdir=$(mktemp -d)
+mkdir -p "$tmpdir/.claude/hooks" "$tmpdir/.claude/state/intents"
+cp .claude/hooks/run-build-steps.sh "$tmpdir/.claude/hooks/"
+cp .claude/hooks/intent-context.sh "$tmpdir/.claude/hooks/"
+cp .claude/hooks/nightwalker-session.sh "$tmpdir/.claude/hooks/"
+printf "%s\n" "#!/bin/bash" "exit 0" > "$tmpdir/.claude/hooks/run-claude-intent.sh"
+printf "%s\n" "#!/bin/bash" "exit 0" > "$tmpdir/.claude/hooks/run-engine-intent.sh"
+printf "%s\n" "#!/bin/bash" "exit 0" > "$tmpdir/.claude/hooks/autopilot-state.sh"
+chmod +x "$tmpdir/.claude/hooks/run-build-steps.sh" "$tmpdir/.claude/hooks/intent-context.sh" "$tmpdir/.claude/hooks/nightwalker-session.sh" "$tmpdir/.claude/hooks/run-claude-intent.sh" "$tmpdir/.claude/hooks/run-engine-intent.sh" "$tmpdir/.claude/hooks/autopilot-state.sh"
+cat > "$tmpdir/.claude/project-profile.md" <<'"'"'EOF'"'"'
+- plan_engine: claude
+- build_engine: claude
+- review_engine: claude
+- plan_model: unset
+- build_model: unset
+- review_model: unset
+EOF
+cat > "$tmpdir/.claude/project-automation.md" <<'"'"'EOF'"'"'
+- max_fix_attempts_per_gate: 2
+- build_parallel_mode: parallel-safe
+- build_parallel_max_jobs: 2
+- build_cmd: true
+- test_cmd: true
+EOF
+cat > "$tmpdir/.claude/state/intents/plan-9999999999-99998.md" <<'"'"'PLAN'"'"'
+# Engine Intent Artifact
+
+- intent: plan
+- engine: claude
+- goal: parallel-test
+
+## Goal And Constraints
+- parallel test
+## Acceptance Criteria
+- steps can be grouped safely
+## Approach
+- parallel-safe plan
+## Implementation Plan
+1. [parallel_safe] Create module A
+2. [parallel_safe] Create module B
+## Uncertainties
+- none
+PLAN
+out="$(cd "$tmpdir" && NIGHTWALKER_TEST_MODE=true ./.claude/hooks/run-build-steps.sh "parallel-test" 2>&1)"
+log="$(cat "$tmpdir/.claude/state/build-steps.log")"
+rm -rf "$tmpdir"
+echo "$out" | grep -q "mode: parallel-safe" &&
+echo "$out" | grep -q "all 2 steps passed" &&
+echo "$log" | grep -q "parallel batch start"'
 run_expect_ok "build-steps fallback on no steps" sh -c '
 NIGHTWALKER_TEST_MODE=true .claude/hooks/run-engine-intent.sh plan "no-steps-test" >/dev/null
 out="$(NIGHTWALKER_TEST_MODE=true .claude/hooks/run-build-steps.sh "no-steps-test" 2>&1)"

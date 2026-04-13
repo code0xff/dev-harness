@@ -268,6 +268,8 @@ set_automation_if_unset "allow_auto_push" "false"
 set_automation_if_unset "intent_retry_attempts" "2"
 set_automation_if_unset "intent_timeout_seconds" "300"
 set_automation_if_unset "qa_max_reopen_attempts" "3"
+set_automation_if_unset "build_parallel_mode" "sequential"
+set_automation_if_unset "build_parallel_max_jobs" "2"
 
 # 3) engine adapter 커맨드 자동 설정
 if command -v codex >/dev/null 2>&1; then
@@ -293,9 +295,8 @@ build_cmd="$(get_automation_value build_cmd)"
 test_cmd="$(get_automation_value test_cmd)"
 quality_cmd="$(get_automation_value quality_cmd)"
 set_automation_if_unset "plan_cmd" '.claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"'
-if [ "$build_cmd" != "unset" ]; then
-  set_automation_if_unset "implement_cmd" "$build_cmd"
-fi
+set_automation_if_unset "implement_cmd" '.claude/hooks/run-build-steps.sh "${AUTOPILOT_GOAL:-autopilot-goal}"'
+set_automation_if_unset "verify_cmd" '.claude/hooks/run-verify-check.sh "${AUTOPILOT_GOAL:-autopilot-goal}"'
 if [ "$quality_cmd" != "unset" ]; then
   set_automation_if_unset "review_cmd" "$quality_cmd"
 elif [ "$test_cmd" != "unset" ]; then
@@ -329,7 +330,7 @@ ensure_allowlist_item "git add"
 ensure_allowlist_item "git commit"
 ensure_allowlist_item "git push"
 
-for key in lint_cmd build_cmd test_cmd plan_cmd implement_cmd review_cmd qa_cmd quality_coverage_cmd quality_perf_cmd quality_architecture_cmd; do
+for key in lint_cmd build_cmd test_cmd plan_cmd implement_cmd verify_cmd review_cmd qa_cmd quality_coverage_cmd quality_perf_cmd quality_architecture_cmd; do
   cmd="$(get_automation_value "$key")"
   prefix="$(command_prefix "$cmd" || true)"
   if [ -n "${prefix:-}" ]; then

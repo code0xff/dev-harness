@@ -10,9 +10,7 @@ source "${SCRIPT_DIR}/nightwalker-session.sh"
 
 PROFILE_FILE=".claude/project-profile.md"
 AUTOMATION_FILE=".claude/project-automation.md"
-REPORT_FILE=".claude/state/qa-report.md"
-DONE_CHECK_FILE=".claude/state/done-check-report.txt"
-VERIFY_REPORT_FILE=".claude/state/verify-report.md"
+REPORT_FILE=".claude/state/verify-report.md"
 STATE_FILE=".claude/state/autopilot-state.json"
 GOAL="${1:-autopilot-goal}"
 
@@ -21,46 +19,33 @@ get_profile_value() {
   grep -E "^- ${key}:" "$PROFILE_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true
 }
 
-get_automation_value() {
-  local key="$1"
-  grep -E "^- ${key}:" "$AUTOMATION_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true
-}
-
 validate_report() {
   local report="$1"
   local heading
-  for heading in "# QA Report" "## Requirement Coverage" "## Findings" "## Follow Up Workstreams"; do
+  for heading in "# Verification Report" "## Acceptance Criteria Coverage" "## Findings" "## Fix Recommendations"; do
     if ! grep -Fqx "$heading" "$report"; then
-      echo "qa-check 실패: 보고서 형식이 올바르지 않습니다. missing=$heading" >&2
+      echo "verify-check 실패: 보고서 형식이 올바르지 않습니다. missing=$heading" >&2
       return 2
     fi
   done
 }
 
 build_prompt() {
-  local project_docs file_tree recent_changes plan_body build_body review_body
-  local plan_artifact build_artifact review_artifact
+  local project_docs file_tree recent_changes plan_body build_body acceptance_body
+  local plan_artifact build_artifact
 
-  # 프로젝트 문서 수집
   project_docs="$(collect_project_docs 200)"
-
-  # 파일 트리 수집
   file_tree="$(collect_file_tree 3)"
-
-  # 최근 변경 수집
   recent_changes="$(collect_recent_changes)"
-
-  # 이전 intent 산출물 수집
+  acceptance_body="$(read_doc_file "docs/acceptance-criteria.md" 200)"
   plan_artifact="$(find_latest_artifact "plan")"
   plan_body="$(read_artifact_body "$plan_artifact")"
   build_artifact="$(find_latest_artifact "build")"
   build_body="$(read_artifact_body "$build_artifact")"
-  review_artifact="$(find_latest_artifact "review")"
-  review_body="$(read_artifact_body "$review_artifact")"
 
   cat <<EOF
-You are performing the final QA pass after verify, review, and quality gates.
-Your job is to confirm that the implementation matches the original goals and identify any remaining remediation work.
+You are verifying whether the implementation satisfies the project's acceptance criteria and original goal.
+This is a verification pass, not a code review.
 
 Goal: ${GOAL}
 
@@ -78,6 +63,14 @@ ${project_docs}
 EOF
   fi
 
+  if [ -n "$acceptance_body" ]; then
+    cat <<EOF
+
+## Acceptance Criteria
+${acceptance_body}
+EOF
+  fi
+
   if [ -f "$STATE_FILE" ]; then
     cat <<EOF
 
@@ -85,22 +78,6 @@ EOF
 \`\`\`json
 $(cat "$STATE_FILE")
 \`\`\`
-EOF
-  fi
-
-  if [ -f "$DONE_CHECK_FILE" ]; then
-    cat <<EOF
-
-## Done Check Report
-$(cat "$DONE_CHECK_FILE")
-EOF
-  fi
-
-  if [ -f "$VERIFY_REPORT_FILE" ]; then
-    cat <<EOF
-
-## Verification Report
-$(cat "$VERIFY_REPORT_FILE")
 EOF
   fi
 
@@ -120,14 +97,6 @@ ${build_body}
 EOF
   fi
 
-  if [ -n "$review_body" ]; then
-    cat <<EOF
-
-## Review Stage Output
-${review_body}
-EOF
-  fi
-
   if [ -n "$recent_changes" ]; then
     cat <<EOF
 
@@ -140,20 +109,21 @@ EOF
 
 ---
 
-Based on ALL the context above, evaluate whether the implementation satisfies the original goal and requirements after verify/review/quality have completed.
+Evaluate whether the implementation satisfies the acceptance criteria and the original goal.
+Focus on requirement coverage, behavior, and missing pieces. Do not perform style-only review.
 
 Return markdown only and include these exact headings:
-# QA Report
+# Verification Report
 - status: pass|fail
 - summary: short summary
-## Requirement Coverage
-- bullet list mapping each requirement to its implementation status
+## Acceptance Criteria Coverage
+- map each acceptance criterion or requirement to pass|partial|fail with rationale
 ## Findings
-- use '- none' if there are no QA issues
+- use '- none' if there are no verification issues
 - otherwise each finding must start with '- [severity:<low|medium|high>]'
-## Follow Up Workstreams
-- use '- none' if there is nothing to register
-- otherwise each line must start with '- QA workstream:'
+## Fix Recommendations
+- use '- none' if there is nothing left to fix
+- otherwise describe the smallest changes required to satisfy the missing criteria
 EOF
 }
 
@@ -161,14 +131,14 @@ mkdir -p "$(dirname "$REPORT_FILE")"
 
 if nightwalker_is_test_mode; then
   cat > "$REPORT_FILE" <<EOF
-# QA Report
+# Verification Report
 - status: pass
-- summary: test mode QA pass
-## Requirement Coverage
-- initial requirement coverage validated in test mode
+- summary: test mode verification pass
+## Acceptance Criteria Coverage
+- acceptance criteria validated in test mode
 ## Findings
 - none
-## Follow Up Workstreams
+## Fix Recommendations
 - none
 EOF
   cat "$REPORT_FILE"
@@ -176,12 +146,14 @@ EOF
 fi
 
 if [ ! -f "$PROFILE_FILE" ] || [ ! -f "$AUTOMATION_FILE" ]; then
-  echo "qa-check 실패: profile/automation 파일이 필요합니다." >&2
+  echo "verify-check 실패: profile/automation 파일이 필요합니다." >&2
   exit 2
 fi
 
-engine="$(get_profile_value review_engine)"
-model="$(get_profile_value review_model)"
+engine="$(get_profile_value verify_engine)"
+[ -z "$engine" ] && engine="$(get_profile_value review_engine)"
+model="$(get_profile_value verify_model)"
+[ -z "$model" ] && model="$(get_profile_value review_model)"
 [ -z "$model" ] && model="unset"
 prompt="$(build_prompt)"
 
@@ -201,7 +173,7 @@ case "$engine" in
     fi
     ;;
   *)
-    echo "qa-check 실패: review_engine=$engine 는 지원되지 않습니다." >&2
+    echo "verify-check 실패: verify engine=$engine 는 지원되지 않습니다." >&2
     exit 2
     ;;
 esac

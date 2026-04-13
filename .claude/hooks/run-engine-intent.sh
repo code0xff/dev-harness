@@ -40,7 +40,7 @@ validate_intent_artifact() {
 
   case "$intent" in
     plan)
-      required=("## Goal And Constraints" "## Approach" "## Implementation Plan" "## Uncertainties")
+      required=("## Goal And Constraints" "## Acceptance Criteria" "## Approach" "## Implementation Plan" "## Uncertainties")
       ;;
     build)
       required=("## Build Changes" "## Validation Results" "## Updated Files")

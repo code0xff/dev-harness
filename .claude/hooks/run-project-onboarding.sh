@@ -141,7 +141,7 @@ build_autopilot_goal() {
   users="$(get_value target_users)"
   stack="$(get_value selected_stack)"
 
-  echo "${goal} [target_users=${users}; selected_stack=${stack}; execution_mode=plan_all_workstreams_then_build_sequentially]"
+  echo "${goal} [target_users=${users}; selected_stack=${stack}; execution_mode=plan_all_workstreams_then_build_sequentially; verification_mode=acceptance_first]"
 }
 
 maybe_start_autopilot() {
@@ -201,12 +201,13 @@ render_ready_report() {
 ## First Workstreams
 
 1. Finalize contracts and boundaries from docs/architecture.md
-2. Implement core flow from docs/execution-plan.md
-3. Add build/test/security gates from .claude/project-automation.md
+2. Confirm acceptance criteria in docs/acceptance-criteria.md
+3. Implement core flow from docs/execution-plan.md
+4. Add build/test/security gates from .claude/project-automation.md
 
 ## Next Action
 
-- If status is ready, run a quick docs sanity pass for docs/architecture.md and docs/roadmap.md, then continue directly into autopilot without asking for next-action selection.
+- If status is ready, run a quick docs sanity pass for docs/architecture.md, docs/roadmap.md, and docs/acceptance-criteria.md, then continue directly into autopilot without asking for next-action selection.
 - If status is pending-input, fill project_goal, target_users, project_archetype, and selected_stack first.
 EOF2
 

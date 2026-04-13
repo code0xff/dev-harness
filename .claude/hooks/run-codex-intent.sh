@@ -133,6 +133,9 @@ ${context}
 
 You are creating an implementation plan for the goal above.
 Inspect the project files, documents, and structure provided.
+For each Implementation Plan item, use a numbered list.
+If a step is safe to run concurrently with other independent steps, prefix it with [parallel_safe].
+If a step depends on earlier steps, add [depends_on:1,2] using step numbers.
 
 IMPORTANT: You have access to the Codex plugin. Use the codex tool to delegate the planning work:
 - Call /codex:rescue with the goal and context to generate a high-quality plan
@@ -141,6 +144,7 @@ IMPORTANT: You have access to the Codex plugin. Use the codex tool to delegate t
 Return markdown only.
 You must include these exact headings:
 ## Goal And Constraints
+## Acceptance Criteria
 ## Approach
 ## Implementation Plan
 ## Uncertainties
@@ -212,10 +216,14 @@ ${context}
 
 You are creating an implementation plan for the goal above.
 Inspect the project files, documents, and structure provided.
+For each Implementation Plan item, use a numbered list.
+If a step is safe to run concurrently with other independent steps, prefix it with [parallel_safe].
+If a step depends on earlier steps, add [depends_on:1,2] using step numbers.
 
 Return markdown only.
 You must include these exact headings:
 ## Goal And Constraints
+## Acceptance Criteria
 ## Approach
 ## Implementation Plan
 ## Uncertainties
@@ -269,6 +277,8 @@ if nightwalker_is_test_mode; then
       cat <<EOF
 ## Goal And Constraints
 - goal: ${GOAL}
+## Acceptance Criteria
+- acceptance criteria captured in test mode
 ## Approach
 - test mode
 ## Implementation Plan

@@ -34,6 +34,16 @@ read_artifact_body() {
   ' "$artifact_path"
 }
 
+read_doc_file() {
+  local doc_path="$1"
+  local max_lines="${2:-200}"
+  if [ -z "$doc_path" ] || [ ! -f "$doc_path" ]; then
+    echo ""
+    return 0
+  fi
+  head -n "$max_lines" "$doc_path"
+}
+
 # 프로젝트 문서 파일들을 읽어서 컨텍스트 블록으로 반환한다.
 # 존재하는 파일만 포함하며, 각 파일을 최대 200줄까지 잘라서 포함한다.
 collect_project_docs() {
@@ -44,6 +54,7 @@ collect_project_docs() {
     "docs/scope.md"
     "docs/architecture.md"
     "docs/stack-decision.md"
+    "docs/acceptance-criteria.md"
     "docs/roadmap.md"
     "docs/execution-plan.md"
   )

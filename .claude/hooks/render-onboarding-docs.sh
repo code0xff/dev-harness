@@ -195,6 +195,47 @@ cat > "$DOCS_DIR/stack-decision.md" <<DOC
 - ${open_questions}
 DOC
 
+# acceptance-criteria.md — archetype별 분기
+if [ "$project_archetype" = "system-platform" ]; then
+  cat > "$DOCS_DIR/acceptance-criteria.md" <<DOC
+# Acceptance Criteria
+
+## Functional Acceptance Criteria
+
+- The primary system capability can be exercised end-to-end on the selected stack.
+- Interface and protocol contracts are documented before dependent implementation expands.
+- Critical failure paths and recovery expectations are covered by tests or explicit validation.
+
+## Operational Acceptance Criteria
+
+- Logs, metrics, and health checks exist for the core runtime path.
+- Compatibility and rollout assumptions are documented for interface-affecting changes.
+
+## Verification Notes
+
+- Map each criterion to code, tests, or documents during verify and QA.
+DOC
+else
+  cat > "$DOCS_DIR/acceptance-criteria.md" <<DOC
+# Acceptance Criteria
+
+## Functional Acceptance Criteria
+
+- The main user journey works end-to-end on the selected stack.
+- API, domain, and persistence boundaries are implemented consistently with the documented design.
+- Critical path behavior is covered by tests or explicit validation.
+
+## Quality Acceptance Criteria
+
+- Required build, test, and security gates pass.
+- Release blockers are documented before delivery.
+
+## Verification Notes
+
+- Map each criterion to code, tests, or documents during verify and QA.
+DOC
+fi
+
 # roadmap.md — archetype별 분기
 if [ "$project_archetype" = "system-platform" ]; then
   cat > "$DOCS_DIR/roadmap.md" <<DOC
@@ -251,8 +292,10 @@ if [ "$project_archetype" = "system-platform" ]; then
 ## Global Plan
 
 - Define all interface contracts before implementation starts (contract-first)
+- Establish acceptance criteria before implementation starts
 - Execute workstreams sequentially in roadmap order
 - Validate backward compatibility before each interface change
+- Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when system boundary or interface contract decisions change
 
@@ -283,7 +326,9 @@ else
 ## Global Plan
 
 - Design all roadmap workstreams before implementation starts
+- Establish acceptance criteria before implementation starts
 - Execute workstreams sequentially in roadmap order
+- Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when roadmap scope or architecture decisions change
 

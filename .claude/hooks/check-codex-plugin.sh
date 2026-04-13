@@ -32,8 +32,29 @@ is_mcp_server_available() {
     local pkg
     pkg="$(echo "$args_json" | jq -r '[.[] | select(startswith("-") | not)] | first // empty' 2>/dev/null || true)"
     if [ -n "$pkg" ]; then
-      # --no-install fails immediately if the package is not cached
-      if npx --no-install "$pkg" --version >/dev/null 2>&1; then
+      # Some MCP server packages do not exit cleanly on --version, so bound the probe.
+      if command -v python3 >/dev/null 2>&1; then
+        if python3 - "$pkg" <<'PY' >/dev/null 2>&1
+import subprocess
+import sys
+
+pkg = sys.argv[1]
+try:
+    completed = subprocess.run(
+        ["npx", "--no-install", pkg, "--version"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=3,
+    )
+    raise SystemExit(completed.returncode)
+except subprocess.TimeoutExpired:
+    raise SystemExit(1)
+PY
+        then
+          return 0
+        fi
+      elif npx --no-install "$pkg" --version >/dev/null 2>&1; then
         return 0
       fi
     fi

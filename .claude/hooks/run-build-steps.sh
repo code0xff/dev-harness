@@ -26,6 +26,9 @@ BUILD_LOG=".claude/state/build-steps.log"
 
 GOAL="${1:-autopilot-goal}"
 STEP_PROGRESS_FILE=".claude/state/build-steps-progress.json"
+declare -a STEP_LINES
+declare -a STEP_STATUS
+declare -a STEP_OUTPUTS
 
 get_profile_value() {
   local key="$1"
@@ -110,6 +113,195 @@ run_quick_gate() {
   return 0
 }
 
+step_body_from_line() {
+  local step_line="$1"
+  echo "$step_line" | sed -E 's/^[0-9]+\.[[:space:]]*//'
+}
+
+extract_step_dependencies() {
+  local step_line="$1"
+  local deps
+  deps="$(echo "$step_line" | grep -o '\[depends_on:[^]]\+\]' | sed -E 's/^\[depends_on:([^]]+)\]$/\1/' | paste -sd',' -)"
+  echo "${deps:-}"
+}
+
+clean_step_description() {
+  local raw
+  raw="$(step_body_from_line "$1")"
+  echo "$raw" | sed -E 's/\[(parallel_safe|depends_on:[^]]+)\][[:space:]]*//g; s/[[:space:]]+/ /g; s/^ //; s/ $//'
+}
+
+step_is_parallel_safe() {
+  local step_line="$1"
+  echo "$step_line" | grep -q '\[parallel_safe\]'
+}
+
+step_is_ready() {
+  local step_num="$1"
+  local deps dep
+  deps="$(extract_step_dependencies "${STEP_LINES[$step_num]}")"
+  [ -z "$deps" ] && return 0
+
+  OLD_IFS="$IFS"
+  IFS=','
+  for dep in $deps; do
+    dep="$(echo "$dep" | tr -d '[:space:]')"
+    [ -z "$dep" ] && continue
+    if ! echo "$dep" | grep -Eq '^[0-9]+$'; then
+      IFS="$OLD_IFS"
+      return 1
+    fi
+    if [ "${STEP_STATUS[$dep]:-pending}" != "done" ]; then
+      IFS="$OLD_IFS"
+      return 1
+    fi
+  done
+  IFS="$OLD_IFS"
+  return 0
+}
+
+mark_step_done() {
+  local step_num="$1"
+  local output="$2"
+  STEP_STATUS[$step_num]="done"
+  STEP_OUTPUTS[$step_num]="$output"
+  record_completed_step "$step_num"
+}
+
+mark_step_failed() {
+  local step_num="$1"
+  local output="$2"
+  STEP_STATUS[$step_num]="failed"
+  STEP_OUTPUTS[$step_num]="$output"
+}
+
+run_single_step() {
+  local step_number="$1"
+  local step_line="$2"
+  local initial_error="${3:-}"
+  local step_desc attempt step_ok prev_error step_output step_exit gate_error gate_exit
+
+  step_desc="$(clean_step_description "$step_line")"
+  log_step "step ${step_number}/${step_count}: ${step_desc}"
+
+  if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
+    "$STATE_HOOK" checkpoint "build-steps" "step ${step_number}/${step_count}: ${step_desc}" >/dev/null 2>&1 || true
+  fi
+
+  attempt=1
+  step_ok=false
+  prev_error="$initial_error"
+
+  while [ "$attempt" -le "$max_fix" ]; do
+    step_output=""
+    step_output="$(run_step_build "$step_number" "$step_desc" "$prev_error" 2>&1)" && step_exit=0 || step_exit=$?
+
+    if [ "$step_exit" -eq 0 ]; then
+      gate_error=""
+      gate_error="$(run_quick_gate 2>&1)" && gate_exit=0 || gate_exit=$?
+      if [ "$gate_exit" -eq 0 ]; then
+        mark_step_done "$step_number" "${step_output}"
+        log_step "step ${step_number} ok (attempt ${attempt})"
+        return 0
+      fi
+      prev_error="Step build succeeded but gate verification failed: ${gate_error}"
+      log_step "step ${step_number} gate failed (attempt ${attempt}): ${gate_error}"
+    else
+      prev_error="Step build failed (exit ${step_exit}): ${step_output}"
+      log_step "step ${step_number} build failed (attempt ${attempt})"
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  log_step "step ${step_number} FAILED after ${max_fix} attempts"
+  mark_step_failed "$step_number" "- step ${step_number}: ${step_desc} (failed after ${max_fix} attempts)"
+  if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
+    "$STATE_HOOK" defer deferred_decisions "build step ${step_number} failed: ${step_desc}" >/dev/null 2>&1 || true
+  fi
+  return 1
+}
+
+run_parallel_batch() {
+  local batch_steps=("$@")
+  local tmpdir gate_error gate_exit batch_ok step step_desc batch_label
+  local -a batch_pids batch_outputs batch_rcs
+
+  tmpdir="$(mktemp -d)"
+  batch_label="$(printf '%s ' "${batch_steps[@]}" | sed -E 's/[[:space:]]+$//')"
+  log_step "parallel batch start: ${batch_label}"
+  if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
+    "$STATE_HOOK" checkpoint "build-steps" "parallel batch: ${batch_label}" >/dev/null 2>&1 || true
+  fi
+
+  for step in "${batch_steps[@]}"; do
+    step_desc="$(clean_step_description "${STEP_LINES[$step]}")"
+    {
+      run_step_build "$step" "$step_desc"
+    } > "${tmpdir}/${step}.out" 2>&1 &
+    batch_pids[$step]=$!
+  done
+
+  batch_ok=true
+  for step in "${batch_steps[@]}"; do
+    if wait "${batch_pids[$step]}"; then
+      batch_rcs[$step]=0
+    else
+      batch_rcs[$step]=$?
+      batch_ok=false
+    fi
+  done
+
+  if [ "$batch_ok" = "true" ]; then
+    gate_error=""
+    gate_error="$(run_quick_gate 2>&1)" && gate_exit=0 || gate_exit=$?
+    if [ "$gate_exit" -eq 0 ]; then
+      for step in "${batch_steps[@]}"; do
+        batch_outputs[$step]="$(cat "${tmpdir}/${step}.out")"
+        mark_step_done "$step" "${batch_outputs[$step]}"
+        log_step "parallel step ${step} ok"
+      done
+      rm -rf "$tmpdir"
+      return 0
+    fi
+    batch_ok=false
+    log_step "parallel batch gate failed: ${gate_error}"
+  fi
+
+  for step in "${batch_steps[@]}"; do
+    step_desc="$(clean_step_description "${STEP_LINES[$step]}")"
+    if [ "${batch_rcs[$step]:-0}" -eq 0 ]; then
+      run_single_step "$step" "${STEP_LINES[$step]}" "Parallel batch gate failed: ${gate_error}" || true
+    else
+      run_single_step "$step" "${STEP_LINES[$step]}" "Parallel batch execution failed for step ${step}: $(cat "${tmpdir}/${step}.out" 2>/dev/null || true)" || true
+    fi
+    [ "${STEP_STATUS[$step]}" = "done" ] || batch_ok=false
+  done
+
+  rm -rf "$tmpdir"
+  [ "$batch_ok" = "true" ]
+}
+
+all_steps_finished() {
+  local step
+  for step in $(seq 1 "$step_count"); do
+    if [ "${STEP_STATUS[$step]}" = "pending" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+has_failed_steps() {
+  local step
+  for step in $(seq 1 "$step_count"); do
+    if [ "${STEP_STATUS[$step]}" = "failed" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # step 실행용 엔진 어댑터 호출
 run_step_build() {
   local step_number="$1"
@@ -188,6 +380,10 @@ cleanup_old_artifacts 20
 
 max_fix="$(get_automation_value max_fix_attempts_per_gate)"
 [ -z "$max_fix" ] && max_fix="3"
+build_parallel_mode="$(get_automation_value build_parallel_mode)"
+[ -z "$build_parallel_mode" ] && build_parallel_mode="sequential"
+build_parallel_max_jobs="$(get_automation_value build_parallel_max_jobs)"
+[ -z "$build_parallel_max_jobs" ] && build_parallel_max_jobs="2"
 
 # 1. 최신 plan artifact에서 step 추출
 plan_artifact="$(find_latest_artifact "plan")"
@@ -212,80 +408,77 @@ if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
 fi
 
 current_step=0
-all_outputs=""
-failed_steps=""
-
-# 이전 실행에서 완료된 step 목록 (resume 지원)
-completed_steps_list="$(get_completed_steps)"
-
 while IFS= read -r step_line; do
   current_step=$((current_step + 1))
+  STEP_LINES[$current_step]="$step_line"
+  STEP_STATUS[$current_step]="pending"
+  STEP_OUTPUTS[$current_step]=""
+done <<< "$steps"
 
-  # "1. description" → "description"
-  step_desc="$(echo "$step_line" | sed -E 's/^[0-9]+\.[[:space:]]*//')"
-
-  # 이미 완료된 step은 건너뜀 (resume)
+completed_steps_list="$(get_completed_steps)"
+for current_step in $(seq 1 "$step_count"); do
   if echo "$completed_steps_list" | grep -qx "$current_step" 2>/dev/null; then
+    step_desc="$(clean_step_description "${STEP_LINES[$current_step]}")"
+    STEP_STATUS[$current_step]="done"
+    STEP_OUTPUTS[$current_step]="- skipped (resumed from previous run)"
     log_step "step ${current_step}/${step_count}: skipped (already completed in previous run)"
-    all_outputs="${all_outputs}
+  fi
+done
 
-### Step ${current_step}: ${step_desc}
-- skipped (resumed from previous run)"
+while ! all_steps_finished; do
+  ready_found=false
+  parallel_batch=()
+
+  for current_step in $(seq 1 "$step_count"); do
+    [ "${STEP_STATUS[$current_step]}" = "pending" ] || continue
+    step_is_ready "$current_step" || continue
+    ready_found=true
+
+    if [ "$build_parallel_mode" = "parallel-safe" ] && step_is_parallel_safe "${STEP_LINES[$current_step]}"; then
+      parallel_batch+=("$current_step")
+      if [ "${#parallel_batch[@]}" -ge "$build_parallel_max_jobs" ]; then
+        break
+      fi
+      continue
+    fi
+
+    run_single_step "$current_step" "${STEP_LINES[$current_step]}" || true
+    parallel_batch=()
+    break
+  done
+
+  if [ "${#parallel_batch[@]}" -gt 0 ]; then
+    run_parallel_batch "${parallel_batch[@]}" || true
     continue
   fi
 
-  log_step "step ${current_step}/${step_count}: ${step_desc}"
-
-  if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
-    "$STATE_HOOK" checkpoint "build-steps" "step ${current_step}/${step_count}: ${step_desc}" >/dev/null 2>&1 || true
+  if [ "$ready_found" = "false" ]; then
+    log_step "dependency deadlock detected; remaining pending steps cannot be scheduled"
+    for current_step in $(seq 1 "$step_count"); do
+      if [ "${STEP_STATUS[$current_step]}" = "pending" ]; then
+        step_desc="$(clean_step_description "${STEP_LINES[$current_step]}")"
+        mark_step_failed "$current_step" "- step ${current_step}: ${step_desc} (blocked by unresolved dependencies)"
+      fi
+    done
+    break
   fi
+done
 
-  # step 실행 + 검증 + 재시도 루프
-  attempt=1
-  step_ok=false
-  prev_error=""
-
-  while [ "$attempt" -le "$max_fix" ]; do
-    step_output=""
-    step_output="$(run_step_build "$current_step" "$step_desc" "$prev_error" 2>&1)" && step_exit=0 || step_exit=$?
-
-    if [ "$step_exit" -eq 0 ]; then
-      # gate 검증
-      gate_error=""
-      gate_error="$(run_quick_gate 2>&1)" && gate_exit=0 || gate_exit=$?
-
-      if [ "$gate_exit" -eq 0 ]; then
-        step_ok=true
-        all_outputs="${all_outputs}
+all_outputs=""
+failed_steps=""
+for current_step in $(seq 1 "$step_count"); do
+  step_desc="$(clean_step_description "${STEP_LINES[$current_step]}")"
+  if [ -n "${STEP_OUTPUTS[$current_step]}" ]; then
+    all_outputs="${all_outputs}
 
 ### Step ${current_step}: ${step_desc}
-${step_output}"
-        record_completed_step "$current_step"
-        log_step "step ${current_step} ok (attempt ${attempt})"
-        break
-      else
-        prev_error="Step build succeeded but gate verification failed: ${gate_error}"
-        log_step "step ${current_step} gate failed (attempt ${attempt}): ${gate_error}"
-      fi
-    else
-      prev_error="Step build failed (exit ${step_exit}): ${step_output}"
-      log_step "step ${current_step} build failed (attempt ${attempt})"
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  if [ "$step_ok" = "false" ]; then
-    log_step "step ${current_step} FAILED after ${max_fix} attempts"
-    failed_steps="${failed_steps}
-- step ${current_step}: ${step_desc} (failed after ${max_fix} attempts)"
-    # 실패해도 나머지 step은 계속 시도 (best-effort)
-    if [ -x "$STATE_HOOK" ] && [ "${AUTOPILOT_ACTIVE:-false}" = "true" ]; then
-      "$STATE_HOOK" defer deferred_decisions "build step ${current_step} failed: ${step_desc}" >/dev/null 2>&1 || true
-    fi
+${STEP_OUTPUTS[$current_step]}"
   fi
-
-done <<< "$steps"
+  if [ "${STEP_STATUS[$current_step]}" = "failed" ]; then
+    failed_steps="${failed_steps}
+${STEP_OUTPUTS[$current_step]}"
+  fi
+done
 
 # 3. 통합 build artifact 생성
 combined_artifact="${STATE_DIR}/build-$(date +%s)-$RANDOM.md"
@@ -294,7 +487,7 @@ combined_artifact="${STATE_DIR}/build-$(date +%s)-$RANDOM.md"
   echo
   echo "- intent: build"
   echo "- engine: $(get_profile_value build_engine)"
-  echo "- mode: step-by-step"
+  echo "- mode: ${build_parallel_mode}"
   echo "- total_steps: ${step_count}"
   echo "- goal: ${GOAL}"
   echo

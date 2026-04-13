@@ -6,6 +6,7 @@ STATE_FILE=".claude/state/autopilot-state.json"
 DONE_FILE=".claude/state/done-check-report.txt"
 UNSET_FILE=".claude/state/unset-config-report.txt"
 QA_FILE=".claude/state/qa-report.md"
+VERIFY_FILE=".claude/state/verify-report.md"
 OUT_FILE=".claude/state/final-report.md"
 
 if [ ! -f "$STATE_FILE" ]; then
@@ -59,6 +60,13 @@ followup_count="$(jq '.manual_followups | length' "$STATE_FILE")"
   echo "## Unset Config"
   if [ -f "$UNSET_FILE" ]; then
     sed 's/^/- /' "$UNSET_FILE"
+  else
+    echo "- none"
+  fi
+  echo
+  echo "## Latest Verification"
+  if [ -f "$VERIFY_FILE" ]; then
+    sed 's/^/- /' "$VERIFY_FILE"
   else
     echo "- none"
   fi

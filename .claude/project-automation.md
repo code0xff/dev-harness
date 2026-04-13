@@ -21,6 +21,8 @@
 - intent_retry_attempts: 2
 - intent_timeout_seconds: 300
 - qa_max_reopen_attempts: 3
+- build_parallel_mode: sequential
+- build_parallel_max_jobs: 2
 
 ## Retry Policy
 
@@ -31,6 +33,7 @@
 
 - plan_cmd: .claude/hooks/run-engine-intent.sh plan "${AUTOPILOT_GOAL:-autopilot-goal}"
 - implement_cmd: .claude/hooks/run-build-steps.sh "${AUTOPILOT_GOAL:-autopilot-goal}"
+- verify_cmd: .claude/hooks/run-verify-check.sh "${AUTOPILOT_GOAL:-autopilot-goal}"
 - review_cmd: .claude/hooks/run-engine-intent.sh review "${AUTOPILOT_GOAL:-autopilot-goal}"
 - qa_cmd: .claude/hooks/run-qa-check.sh "${AUTOPILOT_GOAL:-autopilot-goal}"
 

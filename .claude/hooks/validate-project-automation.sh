@@ -27,10 +27,13 @@ required_keys=(
   "intent_retry_attempts"
   "intent_timeout_seconds"
   "qa_max_reopen_attempts"
+  "build_parallel_mode"
+  "build_parallel_max_jobs"
   "max_fix_attempts_per_gate"
   "max_autopilot_cycles"
   "plan_cmd"
   "implement_cmd"
+  "verify_cmd"
   "review_cmd"
   "qa_cmd"
   "engine_cmd_codex"
@@ -130,6 +133,18 @@ for int_key in intent_retry_attempts intent_timeout_seconds qa_max_reopen_attemp
     exit 2
   fi
 done
+
+build_parallel_mode=$(get_value "build_parallel_mode")
+if [ "$build_parallel_mode" != "sequential" ] && [ "$build_parallel_mode" != "parallel-safe" ]; then
+  echo "project-automation 검증 실패: build_parallel_mode는 sequential 또는 parallel-safe여야 합니다." >&2
+  exit 2
+fi
+
+build_parallel_max_jobs=$(get_value "build_parallel_max_jobs")
+if ! echo "$build_parallel_max_jobs" | grep -Eq '^[0-9]+$' || [ "$build_parallel_max_jobs" -lt 1 ]; then
+  echo "project-automation 검증 실패: build_parallel_max_jobs는 1 이상의 정수여야 합니다." >&2
+  exit 2
+fi
 
 run_on_push=$(get_value "run_gates_on_push")
 if [ "$run_on_push" = "true" ]; then
