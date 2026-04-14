@@ -456,4 +456,155 @@ out=\"\$(REPO_ROOT=\"\$TMPDIR_TEST\" PATH=\"\$TMPDIR_TEST/bin:/usr/bin:/bin\" ba
 rm -rf \"\$TMPDIR_TEST\"
 [ \"\$out\" = \"none\" ]"
 
+# ── roadmap-state.sh ──
+
+run_expect_ok "roadmap-state.sh syntax" bash -n .claude/hooks/roadmap-state.sh
+
+run_expect_ok "roadmap-state count_iterations" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: done
+
+## Iteration 2
+- service_goal: users can pay
+- acceptance: payment works
+- status: active
+EOF
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_iterations")
+rm -f "$tmpfile"
+[ "$result" = "2" ]'
+
+run_expect_ok "roadmap-state get_iteration_status" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: done
+EOF
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_iteration_status 1")
+rm -f "$tmpfile"
+[ "$result" = "done" ]'
+
+run_expect_ok "roadmap-state get_current_iteration_number active" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: done
+
+## Iteration 2
+- service_goal: users can pay
+- acceptance: payment works
+- status: active
+EOF
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_current_iteration_number")
+rm -f "$tmpfile"
+[ "$result" = "2" ]'
+
+run_expect_ok "roadmap-state mark_iteration_done" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: active
+EOF
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && mark_iteration_done 1"
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_iteration_status 1")
+rm -f "$tmpfile"
+[ "$result" = "done" ]'
+
+run_expect_ok "roadmap-state all_iterations_done" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: done
+EOF
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && all_iterations_done"
+result=$?
+rm -f "$tmpfile"
+[ "$result" = "0" ]'
+
+run_expect_ok "roadmap-state append_iteration" sh -c '
+tmpfile="$(mktemp)"
+cat > "$tmpfile" <<EOF
+# Roadmap
+
+## Iteration 1
+- service_goal: users can login
+- acceptance: login works
+- status: done
+EOF
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && append_iteration \"users can pay\" \"payment works\" \"payment integration\""
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_iterations")
+rm -f "$tmpfile"
+[ "$result" = "2" ]'
+
+run_expect_ok "render-onboarding-docs generates iteration format roadmap" sh -c '
+mkdir -p .nightwalker
+cat > .nightwalker/session.yaml <<EOF
+schema_version: 1
+status: proposed
+project_goal: ci regression goal
+target_users: internal developers
+core_features: auth and dashboard
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+current_iteration: 1
+iteration_status: unset
+last_delivered_at: unset
+EOF
+.claude/hooks/render-onboarding-docs.sh >/dev/null &&
+grep -q "^## Iteration 1$" docs/roadmap.md &&
+grep -q "service_goal:" docs/roadmap.md &&
+grep -q "acceptance:" docs/roadmap.md &&
+grep -q "status: active" docs/roadmap.md'
+
+run_expect_ok "autopilot delivery records iteration_status delivered" sh -c '
+mkdir -p .nightwalker
+cat > .nightwalker/session.yaml <<EOF
+schema_version: 1
+status: ready
+project_goal: ci regression goal
+target_users: internal developers
+core_features: auth and dashboard
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+current_iteration: 1
+iteration_status: in-progress
+last_delivered_at: unset
+EOF
+NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-iteration-delivery" >/dev/null 2>&1
+grep -q "iteration_status: delivered" .nightwalker/session.yaml &&
+grep -q "last_delivered_at:" .nightwalker/session.yaml'
+
 pass "all harness regression checks"

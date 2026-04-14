@@ -356,32 +356,7 @@ run_delivery_stage() {
   "$STATE_HOOK" checkpoint "delivery" "render final report"
   "$FINAL_REPORT_HOOK" >/dev/null
 
-  if [ "${AUTOPILOT_SKIP_VCS_WRITE:-false}" = "true" ]; then
-    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (AUTOPILOT_SKIP_VCS_WRITE=true)"
-    return 0
-  fi
-
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (not a git worktree)"
-    return 0
-  fi
-
-  auto_commit="$(get_value "auto_commit_on_success")"
-  auto_push="$(get_value "auto_push_on_success")"
-  allow_auto_push="$(get_value "allow_auto_push")"
-
-  if [ "$auto_commit" = "true" ] && has_worktree_changes; then
-    "$STATE_HOOK" checkpoint "delivery" "stage all changes"
-    git add -A
-
-    if has_worktree_changes; then
-      commit_message="$(build_commit_message "$goal")"
-      "$STATE_HOOK" checkpoint "delivery" "git commit -m \"$commit_message\""
-      git commit -m "$commit_message"
-    fi
-  fi
-
-  # iteration delivered 기록
+  # iteration delivered 기록 (VCS 작업 전에 항상 실행)
   local roadmap_hook
   roadmap_hook="$(dirname "$STATE_HOOK")/roadmap-state.sh"
   local session_hook
@@ -412,6 +387,31 @@ run_delivery_stage() {
       ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
 
       "$STATE_HOOK" checkpoint "delivery" "iteration ${cur_iter:-1} delivered" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if [ "${AUTOPILOT_SKIP_VCS_WRITE:-false}" = "true" ]; then
+    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (AUTOPILOT_SKIP_VCS_WRITE=true)"
+    return 0
+  fi
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (not a git worktree)"
+    return 0
+  fi
+
+  auto_commit="$(get_value "auto_commit_on_success")"
+  auto_push="$(get_value "auto_push_on_success")"
+  allow_auto_push="$(get_value "allow_auto_push")"
+
+  if [ "$auto_commit" = "true" ] && has_worktree_changes; then
+    "$STATE_HOOK" checkpoint "delivery" "stage all changes"
+    git add -A
+
+    if has_worktree_changes; then
+      commit_message="$(build_commit_message "$goal")"
+      "$STATE_HOOK" checkpoint "delivery" "git commit -m \"$commit_message\""
+      git commit -m "$commit_message"
     fi
   fi
 
