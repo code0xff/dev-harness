@@ -46,8 +46,8 @@ stack_candidate_3: unset
 selected_stack: unset
 open_questions: unset
 decisions: unset
-current_iteration: 1
-iteration_status: unset
+current_increment: 1
+increment_status: unset
 last_delivered_at: unset
 YAML
 }

@@ -64,8 +64,8 @@ iteration 기반 개발을 하는 프로젝트에서 적용한다:
 - `service_goal`은 사용자 관점에서 서비스가 어떤 상태가 되는지를 기술한다. 기술적 구현 설명이 아니라 서비스 가치 기술이어야 한다.
 - 해당 iteration의 모든 workstream을 구현했을 때 `service_goal`이 달성되어야 한다.
 - 개별 workstream은 기술적 분해 단위일 수 있지만, iteration 전체는 독립적으로 릴리스 가능한 서비스 상태여야 한다.
-- `/plan` 및 `/next-iteration` 실행 시 이 조건을 충족하는지 확인한다.
-- iteration이 delivered 상태가 되면 `/next-iteration`으로 다음 iteration을 정의한 후 autopilot을 재시작한다.
+- `/plan` 및 `/increment` 실행 시 이 조건을 충족하는지 확인한다.
+- iteration이 delivered 상태가 되면 `/increment`으로 다음 iteration을 정의한 후 autopilot을 재시작한다.
 - roadmap의 iteration 상태는 `roadmap-state.sh`로 관리한다: `active`, `done`, `pending`.
 
 ## Autopilot Execution Rules

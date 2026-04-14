@@ -111,6 +111,53 @@ has_upstream_branch() {
   git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1
 }
 
+# autopilot start 시 session과 roadmap의 increment 상태를 정렬
+_align_increment_status() {
+  local roadmap_hook session_hook session_file cur_incr status
+  roadmap_hook="$(dirname "$STATE_HOOK")/roadmap-state.sh"
+  session_hook="$(dirname "$STATE_HOOK")/nightwalker-session.sh"
+
+  [ -f "$roadmap_hook" ] && [ -f "$session_hook" ] || return 0
+
+  # shellcheck source=nightwalker-session.sh
+  source "$session_hook"
+  session_file="$(nightwalker_resolve_session_file 2>/dev/null || true)"
+  [ -f "$session_file" ] || return 0
+
+  cur_incr="$(grep -E "^current_increment:" "$session_file" | head -n1 | \
+    sed -E 's/^current_increment:[[:space:]]*//' || \
+    grep -E "^current_iteration:" "$session_file" | head -n1 | \
+    sed -E 's/^current_iteration:[[:space:]]*//' || echo "1")"
+  cur_incr="${cur_incr:-1}"
+
+  # roadmap에서 pending increment를 active로 승격
+  # shellcheck source=roadmap-state.sh
+  source "$roadmap_hook"
+  status="$(get_increment_status "${cur_incr}" 2>/dev/null || echo "pending")"
+  if [ "$status" = "pending" ]; then
+    mark_increment_active "${cur_incr}" 2>/dev/null || true
+  fi
+
+  # session increment_status가 unset/pending이면 in-progress로 설정
+  awk '
+    /^increment_status:/ {
+      val = $2
+      if (val == "unset" || val == "pending" || val == "") {
+        print "increment_status: in-progress"
+      } else { print }
+      next
+    }
+    /^iteration_status:/ {
+      val = $2
+      if (val == "unset" || val == "pending" || val == "") {
+        print "iteration_status: in-progress"
+      } else { print }
+      next
+    }
+    { print }
+  ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
+}
+
 build_commit_message() {
   local goal="$1"
   local normalized
@@ -369,24 +416,29 @@ run_delivery_stage() {
     session_file="$(nightwalker_resolve_session_file)"
 
     if [ -f "$session_file" ]; then
-      local cur_iter
-      cur_iter="$(grep -E "^current_iteration:" "$session_file" | head -n1 | sed -E 's/^current_iteration:[[:space:]]*//' || echo "1")"
+      local cur_incr
+      # current_increment 우선, 없으면 current_iteration fallback
+      cur_incr="$(grep -E "^current_increment:" "$session_file" | head -n1 | \
+        sed -E 's/^current_increment:[[:space:]]*//' || \
+        grep -E "^current_iteration:" "$session_file" | head -n1 | \
+        sed -E 's/^current_iteration:[[:space:]]*//' || echo "1")"
 
-      # roadmap에서 현재 iteration을 done으로 표시
+      # roadmap에서 현재 increment를 done으로 표시
       # shellcheck source=roadmap-state.sh
       source "$roadmap_hook"
-      mark_iteration_done "${cur_iter:-1}" 2>/dev/null || true
+      mark_increment_done "${cur_incr:-1}" 2>/dev/null || true
 
-      # session.yaml 갱신
+      # session.yaml 갱신 (increment_status/iteration_status 둘 다 처리)
       local today
       today="$(date -u +%Y-%m-%d)"
       awk -v today="$today" '
+        /^increment_status:/ { print "increment_status: delivered"; next }
         /^iteration_status:/ { print "iteration_status: delivered"; next }
         /^last_delivered_at:/ { print "last_delivered_at: " today; next }
         { print }
       ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
 
-      "$STATE_HOOK" checkpoint "delivery" "iteration ${cur_iter:-1} delivered" >/dev/null 2>&1 || true
+      "$STATE_HOOK" checkpoint "delivery" "increment ${cur_incr:-1} delivered" >/dev/null 2>&1 || true
     fi
   fi
 
@@ -533,6 +585,7 @@ case "$ACTION" in
   start)
     "$ENGINE_READY_HOOK"
     "$STATE_HOOK" start "$GOAL"
+    _align_increment_status
     cycle=1
     start_stage="plan"
     ;;

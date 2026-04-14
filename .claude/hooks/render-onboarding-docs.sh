@@ -241,7 +241,7 @@ if [ "$project_archetype" = "system-platform" ]; then
   cat > "$DOCS_DIR/roadmap.md" <<DOC
 # Roadmap
 
-## Iteration 1
+## Increment 1
 
 - service_goal: the core system path is operational and interface contracts are defined
 - acceptance: interfaces are documented, core path runs end-to-end, operability baseline is in place
@@ -273,7 +273,7 @@ else
   cat > "$DOCS_DIR/roadmap.md" <<DOC
 # Roadmap
 
-## Iteration 1
+## Increment 1
 
 - service_goal: users can complete the main journey end-to-end on the selected stack
 - acceptance: the main user flow works, core tests pass, and the service is ready for release validation
@@ -317,9 +317,9 @@ if [ "$project_archetype" = "system-platform" ]; then
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when system boundary or interface contract decisions change
-- After each iteration is delivered, run /next-iteration to define the next iteration before resuming autopilot
+- After each iteration is delivered, run /increment to define the next iteration before resuming autopilot
 
-## Iteration 1 Plan
+## Increment 1 Plan
 
 ### Workstream 1 Plan
 
@@ -354,9 +354,9 @@ else
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when roadmap scope or architecture decisions change
-- After each iteration is delivered, run /next-iteration to define the next iteration before resuming autopilot
+- After each iteration is delivered, run /increment to define the next iteration before resuming autopilot
 
-## Iteration 1 Plan
+## Increment 1 Plan
 
 ### Workstream 1 Plan
 

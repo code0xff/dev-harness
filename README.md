@@ -83,7 +83,7 @@ cp -r .nightwalker/ /path/to/your-project/.nightwalker/
 ### 라이프사이클
 
 ```
-/init-project → /autopilot → delivery → /next-iteration → /autopilot → delivery → ...
+/init-project → /autopilot → delivery → /increment → /autopilot → delivery → ...
 ```
 
 개발은 **iteration 루프**로 반복된다. 각 iteration은 완료 시 사용자 관점에서 의미 있는 서비스 완결 상태를 달성해야 한다.
@@ -91,7 +91,7 @@ cp -r .nightwalker/ /path/to/your-project/.nightwalker/
 - **iteration**: 여러 workstream의 묶음. `service_goal`(사용자가 할 수 있는 것)과 `acceptance`(서비스 수준 완료 기준)를 포함한다.
 - **`/init-project`**: iteration 1을 정의하고 autopilot을 시작한다.
 - **`/autopilot`**: 현재 iteration의 workstream을 순서대로 구현하고 delivery까지 완주한다.
-- **`/next-iteration`**: iteration이 delivered 상태가 되면 다음 iteration의 service_goal과 workstream을 정의하고 autopilot을 재트리거한다.
+- **`/increment`**: iteration이 delivered 상태가 되면 다음 iteration의 service_goal과 workstream을 정의하고 autopilot을 재트리거한다.
 
 `/autopilot`의 첫 단계인 `/plan`은 roadmap의 모든 workstream과 acceptance criteria를 먼저 설계하고, 이후 build 단계가 그 순서대로 구현을 이어간다.
 기본 `full-auto` 정책은 로컬 개발 완주와 자동 커밋까지를 범위로 두고, push/배포는 개발 후 별도 전략으로 분리한다.

@@ -9,6 +9,8 @@ WORKSTREAM_DIR="docs/workstreams"
 REGISTRY_FILE=".claude/state/qa-registry.json"
 AUTOMATION_FILE=".claude/project-automation.md"
 STATE_HOOK=".claude/hooks/autopilot-state.sh"
+ROADMAP_HOOK=".claude/hooks/roadmap-state.sh"
+SESSION_HOOK=".claude/hooks/nightwalker-session.sh"
 GOAL="${1:-autopilot-goal}"
 
 get_automation_value() {
@@ -96,8 +98,45 @@ ${findings}
 EOF
 fi
 
-if [ -f "$ROADMAP_FILE" ] && ! grep -Fq "$workstream_file" "$ROADMAP_FILE"; then
-  cat >> "$ROADMAP_FILE" <<EOF
+# ── 현재 increment 확인 ──
+cur_incr="1"
+session_file=""
+if [ -f "$SESSION_HOOK" ]; then
+  # shellcheck source=nightwalker-session.sh
+  source "$SESSION_HOOK"
+  session_file="$(nightwalker_resolve_session_file 2>/dev/null || true)"
+  if [ -f "$session_file" ]; then
+    cur_incr="$(grep -E "^current_increment:" "$session_file" | head -n1 | \
+      sed -E 's/^current_increment:[[:space:]]*//' || \
+      grep -E "^current_iteration:" "$session_file" | head -n1 | \
+      sed -E 's/^current_iteration:[[:space:]]*//' || echo "1")"
+    cur_incr="${cur_incr:-1}"
+  fi
+fi
+
+# ── roadmap에 현재 increment 하위 workstream으로 추가 ──
+if [ -f "$ROADMAP_HOOK" ]; then
+  # shellcheck source=roadmap-state.sh
+  source "$ROADMAP_HOOK"
+
+  if [ -f "$ROADMAP_FILE" ]; then
+    # 이미 등록된 workstream인지 확인
+    if ! grep -Fq "$workstream_file" "$ROADMAP_FILE"; then
+      # delivered/done 상태면 reopen
+      roadmap_status="$(get_increment_status "$cur_incr" 2>/dev/null || echo "pending")"
+      if [ "$roadmap_status" = "done" ]; then
+        mark_increment_active "$cur_incr" 2>/dev/null || true
+      fi
+      append_workstream_to_increment "$cur_incr" \
+        "remediation: resolve QA findings (${slug})" \
+        "${workstream_file}" \
+        "QA findings resolved and relevant validation passes"
+    fi
+  fi
+else
+  # fallback: roadmap-state.sh 없을 때 레거시 top-level 섹션
+  if [ -f "$ROADMAP_FILE" ] && ! grep -Fq "$workstream_file" "$ROADMAP_FILE"; then
+    cat >> "$ROADMAP_FILE" <<EOF
 
 ## QA Remediation ${slug}
 
@@ -106,17 +145,62 @@ if [ -f "$ROADMAP_FILE" ] && ! grep -Fq "$workstream_file" "$ROADMAP_FILE"; then
 - Exit Criteria: QA report passes without unresolved blocking findings
 - Workstream File: ${workstream_file}
 EOF
+  fi
 fi
 
-if [ -f "$PLAN_FILE" ] && ! grep -Fq "QA Remediation ${slug}" "$PLAN_FILE"; then
-  cat >> "$PLAN_FILE" <<EOF
+# ── session increment_status 재오픈 ──
+if [ -f "$session_file" ]; then
+  awk '
+    /^increment_status:/ { print "increment_status: in-progress"; next }
+    /^iteration_status:/ { print "iteration_status: in-progress"; next }
+    { print }
+  ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
+fi
 
-## QA Remediation ${slug} Plan
+# ── execution-plan.md에 현재 increment plan 하위 remediation 추가 ──
+if [ -f "$PLAN_FILE" ] && ! grep -Fq "QA Remediation ${slug}" "$PLAN_FILE"; then
+  target_heading="## Increment ${cur_incr} Plan"
+  fallback_heading="## Iteration ${cur_incr} Plan"
+
+  if grep -Fq "$target_heading" "$PLAN_FILE" || grep -Fq "$fallback_heading" "$PLAN_FILE"; then
+    awk -v h1="$target_heading" -v h2="$fallback_heading" \
+        -v slug="$slug" -v report="$QA_REPORT" '
+      BEGIN { in_section=0; done=0 }
+      $0 == h1 || $0 == h2 { in_section=1; print; next }
+      /^## / && in_section && !done {
+        print ""
+        print "### QA Remediation " slug " Plan"
+        print ""
+        print "- Inspect findings from " report
+        print "- Implement only the fixes required to resolve those findings"
+        print "- Re-run validation and QA until this remediation workstream closes"
+        done=1
+        in_section=0
+        print
+        next
+      }
+      { print }
+      END {
+        if (in_section && !done) {
+          print ""
+          print "### QA Remediation " slug " Plan"
+          print ""
+          print "- Inspect findings from " report
+          print "- Implement only the fixes required to resolve those findings"
+          print "- Re-run validation and QA until this remediation workstream closes"
+        }
+      }
+    ' "$PLAN_FILE" > "${PLAN_FILE}.tmp" && mv "${PLAN_FILE}.tmp" "$PLAN_FILE"
+  else
+    cat >> "$PLAN_FILE" <<EOF
+
+### QA Remediation ${slug} Plan
 
 - Inspect findings from ${QA_REPORT}
 - Implement only the fixes required to resolve those findings
 - Re-run validation and QA until this remediation workstream closes
 EOF
+  fi
 fi
 
 if [ -x "$STATE_HOOK" ]; then

@@ -1,37 +1,34 @@
 #!/bin/bash
 
-# roadmap-state.sh — roadmap.md iteration 파싱/상태 갱신 유틸
+# roadmap-state.sh — roadmap.md increment 파싱/상태 갱신 유틸
+# "## Increment N" (신규) 및 "## Iteration N" (레거시 호환) 모두 지원
 #
 # 사용법:
 #   source .claude/hooks/roadmap-state.sh
-#   get_current_iteration_number
-#   get_iteration_service_goal 1
-#   get_iteration_status 1
-#   count_iterations
-#   all_iterations_done
-#   append_iteration "service_goal" "acceptance" "WS1 goal" ["WS2 goal" ...]
-#   mark_iteration_active 1
-#   mark_iteration_done 1
+#   count_increments
+#   get_increment_service_goal 1
+#   get_increment_status 1
+#   get_current_increment_number
+#   all_increments_done
+#   append_increment "service_goal" "acceptance" "WS1 goal" ["WS2 goal" ...]
+#   mark_increment_active 1
+#   mark_increment_done 1
+#   get_last_workstream_number 1
+#   append_workstream_to_increment 1 "goal" ["deliverables"] ["exit criteria"]
+#
+# Legacy aliases (backward compat):
+#   count_iterations → count_increments
+#   get_iteration_status N → get_increment_status N
+#   get_current_iteration_number → get_current_increment_number
+#   mark_iteration_active N → mark_increment_active N
+#   mark_iteration_done N → mark_increment_done N
+#   append_iteration ... → append_increment ...
 
 ROADMAP_FILE="${ROADMAP_FILE:-docs/roadmap.md}"
 
-# iteration N의 헤더 패턴
-_iter_header_pattern() {
-  local n="$1"
-  echo "^## Iteration ${n}$"
-}
-
-# roadmap에서 iteration 섹션 수 반환
-count_iterations() {
-  if [ ! -f "$ROADMAP_FILE" ]; then
-    echo 0
-    return 0
-  fi
-  grep -c "^## Iteration [0-9]" "$ROADMAP_FILE" || echo 0
-}
-
-# iteration N의 특정 필드 값 반환
-_get_iteration_field() {
+# increment N의 특정 필드 값 반환
+# ## Increment N 및 ## Iteration N 모두 인식
+_get_increment_field() {
   local iter_num="$1"
   local field="$2"
   if [ ! -f "$ROADMAP_FILE" ]; then
@@ -39,12 +36,12 @@ _get_iteration_field() {
     return 0
   fi
   awk -v n="$iter_num" -v field="$field" '
-    /^## Iteration / {
+    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
       cur = $3 + 0
       in_iter = (cur == n)
       next
     }
-    /^## / && !/^## Iteration / { in_iter = 0 }
+    /^## / { in_iter = 0 }
     in_iter && $0 ~ ("^- " field ":") {
       sub("^- " field ": *", "")
       print
@@ -53,22 +50,31 @@ _get_iteration_field() {
   ' "$ROADMAP_FILE"
 }
 
-# iteration N의 service_goal 반환
-get_iteration_service_goal() {
-  _get_iteration_field "$1" "service_goal"
+# roadmap에서 increment 섹션 수 반환
+count_increments() {
+  if [ ! -f "$ROADMAP_FILE" ]; then
+    echo 0
+    return 0
+  fi
+  grep -cE "^## (Increment|Iteration) [0-9]" "$ROADMAP_FILE" || echo 0
 }
 
-# iteration N의 status 반환 (active | done | pending)
-get_iteration_status() {
+# increment N의 service_goal 반환
+get_increment_service_goal() {
+  _get_increment_field "$1" "service_goal"
+}
+
+# increment N의 status 반환 (active | done | pending)
+get_increment_status() {
   local val
-  val="$(_get_iteration_field "$1" "status")"
+  val="$(_get_increment_field "$1" "status")"
   echo "${val:-pending}"
 }
 
-# 현재 active 또는 첫 번째 pending iteration 번호 반환
-get_current_iteration_number() {
+# 현재 active 또는 첫 번째 pending increment 번호 반환
+get_current_increment_number() {
   local total
-  total="$(count_iterations)"
+  total="$(count_increments)"
   if [ "$total" -eq 0 ]; then
     echo 0
     return 0
@@ -76,7 +82,7 @@ get_current_iteration_number() {
 
   local i status
   for i in $(seq 1 "$total"); do
-    status="$(get_iteration_status "$i")"
+    status="$(get_increment_status "$i")"
     if [ "$status" = "active" ]; then
       echo "$i"
       return 0
@@ -85,7 +91,7 @@ get_current_iteration_number() {
 
   # active 없으면 첫 번째 pending
   for i in $(seq 1 "$total"); do
-    status="$(get_iteration_status "$i")"
+    status="$(get_increment_status "$i")"
     if [ "$status" = "pending" ]; then
       echo "$i"
       return 0
@@ -96,17 +102,17 @@ get_current_iteration_number() {
   echo "$total"
 }
 
-# 모든 iteration이 done인지 확인 (0=true, 1=false)
-all_iterations_done() {
+# 모든 increment가 done인지 확인 (0=true, 1=false)
+all_increments_done() {
   local total
-  total="$(count_iterations)"
+  total="$(count_increments)"
   if [ "$total" -eq 0 ]; then
     return 1
   fi
 
   local i status
   for i in $(seq 1 "$total"); do
-    status="$(get_iteration_status "$i")"
+    status="$(get_increment_status "$i")"
     if [ "$status" != "done" ]; then
       return 1
     fi
@@ -114,8 +120,8 @@ all_iterations_done() {
   return 0
 }
 
-# iteration N의 status를 지정 값으로 변경
-_set_iteration_status() {
+# increment N의 status를 지정 값으로 변경
+_set_increment_status() {
   local iter_num="$1"
   local new_status="$2"
   if [ ! -f "$ROADMAP_FILE" ]; then
@@ -124,13 +130,13 @@ _set_iteration_status() {
   fi
 
   awk -v n="$iter_num" -v new_status="$new_status" '
-    /^## Iteration / {
+    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
       cur = $3 + 0
       in_iter = (cur == n)
       print
       next
     }
-    /^## / && !/^## Iteration / { in_iter = 0; print; next }
+    /^## / { in_iter = 0; print; next }
     in_iter && /^- status:/ {
       print "- status: " new_status
       next
@@ -140,19 +146,117 @@ _set_iteration_status() {
   mv "${ROADMAP_FILE}.tmp" "$ROADMAP_FILE"
 }
 
-# iteration N을 active로 변경
-mark_iteration_active() {
-  _set_iteration_status "$1" "active"
+# increment N을 active로 변경
+mark_increment_active() {
+  _set_increment_status "$1" "active"
 }
 
-# iteration N을 done으로 변경
-mark_iteration_done() {
-  _set_iteration_status "$1" "done"
+# increment N을 done으로 변경
+mark_increment_done() {
+  _set_increment_status "$1" "done"
 }
 
-# 새 iteration 블록을 roadmap 말미에 append
-# 사용법: append_iteration "service_goal" "acceptance" "WS goal1" ["WS goal2" ...]
-append_iteration() {
+# increment N의 마지막 workstream 번호 반환 (없으면 0)
+get_last_workstream_number() {
+  local iter_num="$1"
+  if [ ! -f "$ROADMAP_FILE" ]; then
+    echo 0
+    return 0
+  fi
+  awk -v n="$iter_num" '
+    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+      cur = $3 + 0
+      in_iter = (cur == n)
+      next
+    }
+    /^## / && !/^## Increment / && !/^## Iteration / { in_iter = 0 }
+    in_iter && /^### Workstream [0-9]/ {
+      ws = $3 + 0
+      if (ws > last) last = ws
+    }
+    END { print (last > 0 ? last : 0) }
+  ' "$ROADMAP_FILE"
+}
+
+# increment N에 workstream 블록을 추가
+# 사용법: append_workstream_to_increment N "goal" ["deliverables"] ["exit_criteria"]
+append_workstream_to_increment() {
+  local iter_num="$1"
+  local ws_goal="$2"
+  local ws_deliverables="${3:-(to be defined)}"
+  local ws_exit_criteria="${4:-(to be defined)}"
+
+  if [ ! -f "$ROADMAP_FILE" ]; then
+    echo "roadmap-state: $ROADMAP_FILE 파일이 없습니다." >&2
+    return 1
+  fi
+
+  local last_ws new_ws
+  last_ws="$(get_last_workstream_number "$iter_num")"
+  if [ "$last_ws" -eq 0 ]; then
+    new_ws=$(( (iter_num - 1) * 10 + 1 ))
+  else
+    new_ws=$(( last_ws + 1 ))
+  fi
+
+  awk -v n="$iter_num" -v ws_num="$new_ws" \
+      -v goal="$ws_goal" -v deliverables="$ws_deliverables" -v exit_crit="$ws_exit_criteria" '
+    BEGIN { in_target=0; appended=0 }
+    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+      cur = $3 + 0
+      if (cur == n) {
+        in_target=1
+        print
+        next
+      }
+      if (in_target && !appended) {
+        print ""
+        print "### Workstream " ws_num
+        print ""
+        print "- Goal: " goal
+        print "- Deliverables: " deliverables
+        print "- Exit Criteria: " exit_crit
+        print "- status: pending"
+        appended=1
+      }
+      in_target=0
+      print
+      next
+    }
+    /^## / {
+      if (in_target && !appended) {
+        print ""
+        print "### Workstream " ws_num
+        print ""
+        print "- Goal: " goal
+        print "- Deliverables: " deliverables
+        print "- Exit Criteria: " exit_crit
+        print "- status: pending"
+        appended=1
+      }
+      in_target=0
+      print
+      next
+    }
+    { print }
+    END {
+      if (in_target && !appended) {
+        print ""
+        print "### Workstream " ws_num
+        print ""
+        print "- Goal: " goal
+        print "- Deliverables: " deliverables
+        print "- Exit Criteria: " exit_crit
+        print "- status: pending"
+      }
+    }
+  ' "$ROADMAP_FILE" > "${ROADMAP_FILE}.tmp"
+  mv "${ROADMAP_FILE}.tmp" "$ROADMAP_FILE"
+}
+
+# 새 increment 블록을 roadmap 말미에 append
+# 사용법: append_increment "service_goal" "acceptance" "WS goal1" ["WS goal2" ...]
+append_increment() {
   local service_goal="$1"
   local acceptance="$2"
   shift 2
@@ -164,11 +268,11 @@ append_iteration() {
   fi
 
   local next_num
-  next_num=$(( $(count_iterations) + 1 ))
+  next_num=$(( $(count_increments) + 1 ))
 
   {
     echo ""
-    echo "## Iteration ${next_num}"
+    echo "## Increment ${next_num}"
     echo ""
     echo "- service_goal: ${service_goal}"
     echo "- acceptance: ${acceptance}"
@@ -190,3 +294,14 @@ append_iteration() {
     i=$(( i + 1 ))
   done
 }
+
+# ── Legacy aliases (backward compatibility) ──
+
+count_iterations()              { count_increments "$@"; }
+get_iteration_service_goal()    { get_increment_service_goal "$@"; }
+get_iteration_status()          { get_increment_status "$@"; }
+get_current_iteration_number()  { get_current_increment_number "$@"; }
+all_iterations_done()           { all_increments_done "$@"; }
+mark_iteration_active()         { mark_increment_active "$@"; }
+mark_iteration_done()           { mark_increment_done "$@"; }
+append_iteration()              { append_increment "$@"; }

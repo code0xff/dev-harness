@@ -460,104 +460,104 @@ rm -rf \"\$TMPDIR_TEST\"
 
 run_expect_ok "roadmap-state.sh syntax" bash -n .claude/hooks/roadmap-state.sh
 
-run_expect_ok "roadmap-state count_iterations" sh -c '
+run_expect_ok "roadmap-state count_increments" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: done
 
-## Iteration 2
+## Increment 2
 - service_goal: users can pay
 - acceptance: payment works
 - status: active
 EOF
-result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_iterations")
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_increments")
 rm -f "$tmpfile"
 [ "$result" = "2" ]'
 
-run_expect_ok "roadmap-state get_iteration_status" sh -c '
+run_expect_ok "roadmap-state get_increment_status" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: done
 EOF
-result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_iteration_status 1")
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_increment_status 1")
 rm -f "$tmpfile"
 [ "$result" = "done" ]'
 
-run_expect_ok "roadmap-state get_current_iteration_number active" sh -c '
+run_expect_ok "roadmap-state get_current_increment_number active" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: done
 
-## Iteration 2
+## Increment 2
 - service_goal: users can pay
 - acceptance: payment works
 - status: active
 EOF
-result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_current_iteration_number")
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_current_increment_number")
 rm -f "$tmpfile"
 [ "$result" = "2" ]'
 
-run_expect_ok "roadmap-state mark_iteration_done" sh -c '
+run_expect_ok "roadmap-state mark_increment_done" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: active
 EOF
-ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && mark_iteration_done 1"
-result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_iteration_status 1")
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && mark_increment_done 1"
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && get_increment_status 1")
 rm -f "$tmpfile"
 [ "$result" = "done" ]'
 
-run_expect_ok "roadmap-state all_iterations_done" sh -c '
+run_expect_ok "roadmap-state all_increments_done" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: done
 EOF
-ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && all_iterations_done"
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && all_increments_done"
 result=$?
 rm -f "$tmpfile"
 [ "$result" = "0" ]'
 
-run_expect_ok "roadmap-state append_iteration" sh -c '
+run_expect_ok "roadmap-state append_increment" sh -c '
 tmpfile="$(mktemp)"
 cat > "$tmpfile" <<EOF
 # Roadmap
 
-## Iteration 1
+## Increment 1
 - service_goal: users can login
 - acceptance: login works
 - status: done
 EOF
-ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && append_iteration \"users can pay\" \"payment works\" \"payment integration\""
-result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_iterations")
+ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && append_increment \"users can pay\" \"payment works\" \"payment integration\""
+result=$(ROADMAP_FILE="$tmpfile" bash -c "source .claude/hooks/roadmap-state.sh && count_increments")
 rm -f "$tmpfile"
 [ "$result" = "2" ]'
 
-run_expect_ok "render-onboarding-docs generates iteration format roadmap" sh -c '
+run_expect_ok "render-onboarding-docs generates increment format roadmap" sh -c '
 mkdir -p .nightwalker
 cat > .nightwalker/session.yaml <<EOF
 schema_version: 1
@@ -573,17 +573,17 @@ stack_candidate_3: unset
 selected_stack: bash
 open_questions: unset
 decisions: unset
-current_iteration: 1
-iteration_status: unset
+current_increment: 1
+increment_status: unset
 last_delivered_at: unset
 EOF
 .claude/hooks/render-onboarding-docs.sh >/dev/null &&
-grep -q "^## Iteration 1$" docs/roadmap.md &&
+grep -q "^## Increment 1$" docs/roadmap.md &&
 grep -q "service_goal:" docs/roadmap.md &&
 grep -q "acceptance:" docs/roadmap.md &&
 grep -q "status: active" docs/roadmap.md'
 
-run_expect_ok "autopilot delivery records iteration_status delivered" sh -c '
+run_expect_ok "autopilot delivery records increment_status delivered" sh -c '
 mkdir -p .nightwalker
 cat > .nightwalker/session.yaml <<EOF
 schema_version: 1
@@ -599,12 +599,132 @@ stack_candidate_3: unset
 selected_stack: bash
 open_questions: unset
 decisions: unset
-current_iteration: 1
-iteration_status: in-progress
+current_increment: 1
+increment_status: in-progress
 last_delivered_at: unset
 EOF
-NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-iteration-delivery" >/dev/null 2>&1
-grep -q "iteration_status: delivered" .nightwalker/session.yaml &&
+NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-increment-delivery" >/dev/null 2>&1
+grep -q "increment_status: delivered" .nightwalker/session.yaml &&
 grep -q "last_delivered_at:" .nightwalker/session.yaml'
+
+run_expect_ok "autopilot start aligns pending increment to active then done" sh -c '
+mkdir -p .nightwalker docs
+cat > .nightwalker/session.yaml <<EOF
+schema_version: 1
+status: ready
+project_goal: ci test
+target_users: devs
+core_features: auth
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+current_increment: 1
+increment_status: unset
+last_delivered_at: unset
+EOF
+cat > docs/roadmap.md <<EOF
+# Roadmap
+
+## Increment 1
+- service_goal: users can login
+- acceptance: login works
+- status: pending
+EOF
+NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-align-test" >/dev/null 2>&1
+grep -q "increment_status: delivered" .nightwalker/session.yaml &&
+grep -q "status: done" docs/roadmap.md'
+
+run_expect_ok "qa workstream registered under current increment not top level" sh -c '
+mkdir -p .nightwalker .claude/state docs
+cat > .nightwalker/session.yaml <<EOF
+schema_version: 1
+status: ready
+project_goal: ci test
+target_users: devs
+core_features: auth
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+current_increment: 1
+increment_status: in-progress
+last_delivered_at: unset
+EOF
+cat > docs/roadmap.md <<EOF
+# Roadmap
+
+## Increment 1
+- service_goal: users can login
+- acceptance: login works
+- status: active
+
+### Workstream 1
+- Goal: implement login
+- status: pending
+EOF
+cat > .claude/state/qa-report.md <<EOF
+# QA Report
+- status: fail
+- summary: missing validation
+## Findings
+- [severity:medium] input validation missing on login endpoint
+EOF
+.claude/hooks/register-qa-workstream.sh "ci-qa-increment" >/dev/null &&
+grep -q "### Workstream" docs/roadmap.md &&
+! grep -q "^## QA Remediation" docs/roadmap.md'
+
+run_expect_ok "qa workstream number follows existing workstreams" sh -c '
+mkdir -p .nightwalker .claude/state docs
+cat > .nightwalker/session.yaml <<EOF
+schema_version: 1
+status: ready
+project_goal: ci test
+target_users: devs
+core_features: auth
+constraints: unset
+project_archetype: service-app
+stack_candidate_1: unset
+stack_candidate_2: unset
+stack_candidate_3: unset
+selected_stack: bash
+open_questions: unset
+decisions: unset
+current_increment: 1
+increment_status: in-progress
+last_delivered_at: unset
+EOF
+cat > docs/roadmap.md <<EOF
+# Roadmap
+
+## Increment 1
+- service_goal: users can login
+- acceptance: login works
+- status: active
+
+### Workstream 1
+- Goal: implement login
+- status: pending
+
+### Workstream 2
+- Goal: add tests
+- status: pending
+EOF
+cat > .claude/state/qa-report.md <<EOF
+# QA Report
+- status: fail
+## Findings
+- [severity:medium] missing coverage for login edge case
+EOF
+.claude/hooks/register-qa-workstream.sh "ci-qa-wsnum" >/dev/null &&
+grep -q "### Workstream 3" docs/roadmap.md'
 
 pass "all harness regression checks"
