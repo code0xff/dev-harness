@@ -38,9 +38,7 @@ stack_candidates_raw="$(get_value stack_candidates)"
 recommended_stack="$(normalize_value "$(get_value recommended_stack)")"
 selected_stack="$(normalize_value "$(get_value selected_stack)")"
 
-# 파이프(|) 또는 쉼표(,) 구분 후보 목록을 번호 목록으로 변환
-# 파이프를 우선 구분자로 사용한다(스택 이름 내 쉼표 포함 가능).
-# 구 포맷(stack_candidate_1/2/3) fallback 지원
+# 파이프(|) 우선, 쉼표(,) fallback으로 후보 목록 분리
 _split_candidates() {
   local raw="$1"
   if echo "$raw" | grep -qF '|'; then

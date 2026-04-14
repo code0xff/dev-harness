@@ -57,10 +57,7 @@ nightwalker_is_test_mode() {
   [ "${NIGHTWALKER_TEST_MODE:-${DEV_HARNESS_TEST_MODE:-false}}" = "true" ]
 }
 
-# session.yaml에서 현재 increment 번호를 읽는다.
-# current_increment 키를 우선 읽고, 없으면 current_iteration(구 포맷)으로 fallback한다.
-# grep|head|sed 파이프라인은 grep이 미매치여도 exit 0을 반환하므로
-# 각 키를 독립된 명령으로 분리하여 빈 값 여부를 명시적으로 확인한다.
+# current_increment를 읽고, 없으면 current_iteration(구 포맷)으로 fallback
 nightwalker_read_current_increment() {
   local session_file="${1:-}"
   local val
