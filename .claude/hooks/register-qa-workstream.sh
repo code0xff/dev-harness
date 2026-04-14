@@ -148,7 +148,6 @@ fi
 if [ -f "$session_file" ]; then
   awk '
     /^increment_status:/ { print "increment_status: in-progress"; next }
-    /^iteration_status:/ { print "iteration_status: in-progress"; next }
     { print }
   ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
 fi
@@ -156,13 +155,12 @@ fi
 # ── execution-plan.md에 현재 increment plan 하위 remediation 추가 ──
 if [ -f "$PLAN_FILE" ] && ! grep -Fq "QA Remediation ${slug}" "$PLAN_FILE"; then
   target_heading="## Increment ${cur_incr} Plan"
-  fallback_heading="## Iteration ${cur_incr} Plan"
 
-  if grep -Fq "$target_heading" "$PLAN_FILE" || grep -Fq "$fallback_heading" "$PLAN_FILE"; then
-    awk -v h1="$target_heading" -v h2="$fallback_heading" \
+  if grep -Fq "$target_heading" "$PLAN_FILE"; then
+    awk -v h1="$target_heading" \
         -v slug="$slug" -v report="$QA_REPORT" '
       BEGIN { in_section=0; done=0 }
-      $0 == h1 || $0 == h2 { in_section=1; print; next }
+      $0 == h1 { in_section=1; print; next }
       /^## / && in_section && !done {
         print ""
         print "### QA Remediation " slug " Plan"

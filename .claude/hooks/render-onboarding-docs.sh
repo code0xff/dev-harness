@@ -339,15 +339,15 @@ if [ "$project_archetype" = "system-platform" ]; then
 
 ## Global Plan
 
-- Each iteration defines a service_goal that must be achievable by completing all its workstreams.
+- Each increment defines a service_goal that must be achievable by completing all its workstreams.
 - Define all interface contracts before implementation starts (contract-first)
 - Establish acceptance criteria before implementation starts
-- Execute workstreams sequentially within each iteration
+- Execute workstreams sequentially within each increment
 - Validate backward compatibility before each interface change
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when system boundary or interface contract decisions change
-- After each iteration is delivered, run /increment to define the next iteration before resuming autopilot
+- After each increment is delivered, run /increment to define the next increment before resuming autopilot
 
 ## Increment 1 Plan
 
@@ -377,14 +377,14 @@ else
 
 ## Global Plan
 
-- Each iteration defines a service_goal that must be achievable by completing all its workstreams.
-- Design all iteration workstreams before implementation starts
+- Each increment defines a service_goal that must be achievable by completing all its workstreams.
+- Design all increment workstreams before implementation starts
 - Establish acceptance criteria before implementation starts
-- Execute workstreams sequentially within each iteration
+- Execute workstreams sequentially within each increment
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when roadmap scope or architecture decisions change
-- After each iteration is delivered, run /increment to define the next iteration before resuming autopilot
+- After each increment is delivered, run /increment to define the next increment before resuming autopilot
 
 ## Increment 1 Plan
 

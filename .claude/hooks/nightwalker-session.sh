@@ -57,7 +57,6 @@ nightwalker_is_test_mode() {
   [ "${NIGHTWALKER_TEST_MODE:-${DEV_HARNESS_TEST_MODE:-false}}" = "true" ]
 }
 
-# current_increment를 읽고, 없으면 current_iteration(구 포맷)으로 fallback
 nightwalker_read_current_increment() {
   local session_file="${1:-}"
   local val
@@ -67,9 +66,5 @@ nightwalker_read_current_increment() {
   fi
   val="$(grep -E "^current_increment:" "$session_file" | head -n1 | \
     sed -E 's/^current_increment:[[:space:]]*//')"
-  if [ -z "$val" ]; then
-    val="$(grep -E "^current_iteration:" "$session_file" | head -n1 | \
-      sed -E 's/^current_iteration:[[:space:]]*//')"
-  fi
   echo "${val:-1}"
 }

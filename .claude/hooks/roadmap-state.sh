@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # roadmap-state.sh — roadmap.md increment 파싱/상태 갱신 유틸
-# "## Increment N" (신규) 및 "## Iteration N" (레거시 호환) 모두 지원
 #
 # 사용법:
 #   source .claude/hooks/roadmap-state.sh
@@ -15,19 +14,10 @@
 #   mark_increment_done 1
 #   get_last_workstream_number 1
 #   append_workstream_to_increment 1 "goal" ["deliverables"] ["exit criteria"]
-#
-# Legacy aliases (backward compat):
-#   count_iterations → count_increments
-#   get_iteration_status N → get_increment_status N
-#   get_current_iteration_number → get_current_increment_number
-#   mark_iteration_active N → mark_increment_active N
-#   mark_iteration_done N → mark_increment_done N
-#   append_iteration ... → append_increment ...
 
 ROADMAP_FILE="${ROADMAP_FILE:-docs/roadmap.md}"
 
 # increment N의 특정 필드 값 반환
-# ## Increment N 및 ## Iteration N 모두 인식
 _get_increment_field() {
   local iter_num="$1"
   local field="$2"
@@ -36,7 +26,7 @@ _get_increment_field() {
     return 0
   fi
   awk -v n="$iter_num" -v field="$field" '
-    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+    /^## Increment [0-9]/ {
       cur = $3 + 0
       in_iter = (cur == n)
       next
@@ -56,7 +46,7 @@ count_increments() {
     echo 0
     return 0
   fi
-  grep -cE "^## (Increment|Iteration) [0-9]" "$ROADMAP_FILE" || echo 0
+  grep -cE "^## Increment [0-9]" "$ROADMAP_FILE" || echo 0
 }
 
 # increment N의 service_goal 반환
@@ -130,7 +120,7 @@ _set_increment_status() {
   fi
 
   awk -v n="$iter_num" -v new_status="$new_status" '
-    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+    /^## Increment [0-9]/ {
       cur = $3 + 0
       in_iter = (cur == n)
       in_ws = 0
@@ -166,12 +156,12 @@ get_last_workstream_number() {
     return 0
   fi
   awk -v n="$iter_num" '
-    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+    /^## Increment [0-9]/ {
       cur = $3 + 0
       in_iter = (cur == n)
       next
     }
-    /^## / && !/^## Increment / && !/^## Iteration / { in_iter = 0 }
+    /^## / && !/^## Increment / { in_iter = 0 }
     in_iter && /^### Workstream [0-9]/ {
       ws = $3 + 0
       if (ws > last) last = ws
@@ -204,7 +194,7 @@ append_workstream_to_increment() {
   awk -v n="$iter_num" -v ws_num="$new_ws" \
       -v goal="$ws_goal" -v deliverables="$ws_deliverables" -v exit_crit="$ws_exit_criteria" '
     BEGIN { in_target=0; appended=0 }
-    /^## Increment [0-9]/ || /^## Iteration [0-9]/ {
+    /^## Increment [0-9]/ {
       cur = $3 + 0
       if (cur == n) {
         in_target=1
@@ -297,13 +287,3 @@ append_increment() {
   done
 }
 
-# ── Legacy aliases (backward compatibility) ──
-
-count_iterations()              { count_increments "$@"; }
-get_iteration_service_goal()    { get_increment_service_goal "$@"; }
-get_iteration_status()          { get_increment_status "$@"; }
-get_current_iteration_number()  { get_current_increment_number "$@"; }
-all_iterations_done()           { all_increments_done "$@"; }
-mark_iteration_active()         { mark_increment_active "$@"; }
-mark_iteration_done()           { mark_increment_done "$@"; }
-append_iteration()              { append_increment "$@"; }

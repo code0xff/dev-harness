@@ -86,19 +86,19 @@ cp -r .nightwalker/ /path/to/your-project/.nightwalker/
 /init-project → /autopilot → delivery → /increment → /autopilot → delivery → ...
 ```
 
-개발은 **iteration 루프**로 반복된다. 각 iteration은 완료 시 사용자 관점에서 의미 있는 서비스 완결 상태를 달성해야 한다.
+개발은 **increment 루프**로 반복된다. 각 increment는 완료 시 사용자 관점에서 의미 있는 서비스 완결 상태를 달성해야 한다.
 
-- **iteration**: 여러 workstream의 묶음. `service_goal`(사용자가 할 수 있는 것)과 `acceptance`(서비스 수준 완료 기준)를 포함한다.
-- **`/init-project`**: iteration 1을 정의하고 autopilot을 시작한다.
-- **`/autopilot`**: 현재 iteration의 workstream을 순서대로 구현하고 delivery까지 완주한다.
-- **`/increment`**: iteration이 delivered 상태가 되면 다음 iteration의 service_goal과 workstream을 정의하고 autopilot을 재트리거한다.
+- **increment**: 여러 workstream의 묶음. `service_goal`(사용자가 할 수 있는 것)과 `acceptance`(서비스 수준 완료 기준)를 포함한다.
+- **`/init-project`**: increment 1을 정의하고 autopilot을 시작한다.
+- **`/autopilot`**: 현재 increment의 workstream을 순서대로 구현하고 delivery까지 완주한다.
+- **`/increment`**: increment가 delivered 상태가 되면 다음 increment의 service_goal과 workstream을 정의하고 autopilot을 재트리거한다.
 
 `/autopilot`의 첫 단계인 `/plan`은 roadmap의 모든 workstream과 acceptance criteria를 먼저 설계하고, 이후 build 단계가 그 순서대로 구현을 이어간다.
 기본 `full-auto` 정책은 로컬 개발 완주와 자동 커밋까지를 범위로 두고, push/배포는 개발 후 별도 전략으로 분리한다.
 구현 후에는 verify 단계에서 acceptance criteria 충족 여부를 먼저 검증하고, QA 단계에서 최종 요구사항 충족 여부를 다시 검수한다. 문제가 나오면 remediation workstream을 등록해 같은 flow로 후속 개발을 이어간다.
 `/workstream`은 구현, 커밋, 코드 리뷰를 내부에서 순차 수행한다. 변경 크기에 따라 경량 리뷰(빌드+테스트만) 또는 전체 리뷰(`/codex-review` + `/self-review`)를 선택한다. 리뷰를 별도로 실행하려면 `/workstream` 없이 직접 호출한다.
 
-여기서 `roadmap`은 iteration과 workstream으로 구성된다. 각 `## Iteration N` 블록은 `service_goal`, `acceptance`, `status`를 가지며, 그 아래 `### Workstream N` 항목들이 실행 단위다. roadmap 상태는 `.claude/hooks/roadmap-state.sh`로 관리한다.
+여기서 `roadmap`은 increment와 workstream으로 구성된다. 각 `## Increment N` 블록은 `service_goal`, `acceptance`, `status`를 가지며, 그 아래 `### Workstream N` 항목들이 실행 단위다. roadmap 상태는 `.claude/hooks/roadmap-state.sh`로 관리한다.
 
 ## 프로젝트별 확장
 

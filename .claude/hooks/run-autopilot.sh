@@ -143,13 +143,6 @@ _align_increment_status() {
       } else { print }
       next
     }
-    /^iteration_status:/ {
-      val = $2
-      if (val == "unset" || val == "pending" || val == "") {
-        print "iteration_status: in-progress"
-      } else { print }
-      next
-    }
     { print }
   ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
 }
@@ -399,7 +392,7 @@ run_delivery_stage() {
   "$STATE_HOOK" checkpoint "delivery" "render final report"
   "$FINAL_REPORT_HOOK" >/dev/null
 
-  # iteration delivered 기록 (VCS 작업 전에 항상 실행)
+  # increment delivered 기록 (VCS 작업 전에 항상 실행)
   local roadmap_hook
   roadmap_hook="$(dirname "$STATE_HOOK")/roadmap-state.sh"
   local session_hook
@@ -420,12 +413,11 @@ run_delivery_stage() {
       source "$roadmap_hook"
       mark_increment_done "${cur_incr:-1}" 2>/dev/null || true
 
-      # session.yaml 갱신 (increment_status/iteration_status 둘 다 처리)
+      # session.yaml 갱신
       local today
       today="$(date -u +%Y-%m-%d)"
       awk -v today="$today" '
         /^increment_status:/ { print "increment_status: delivered"; next }
-        /^iteration_status:/ { print "iteration_status: delivered"; next }
         /^last_delivered_at:/ { print "last_delivered_at: " today; next }
         { print }
       ' "$session_file" > "${session_file}.tmp" && mv "${session_file}.tmp" "$session_file"
