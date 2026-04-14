@@ -241,46 +241,64 @@ if [ "$project_archetype" = "system-platform" ]; then
   cat > "$DOCS_DIR/roadmap.md" <<DOC
 # Roadmap
 
-## Workstream 1
+## Iteration 1
+
+- service_goal: the core system path is operational and interface contracts are defined
+- acceptance: interfaces are documented, core path runs end-to-end, operability baseline is in place
+- status: active
+
+### Workstream 1
 
 - Goal: define component boundaries, responsibilities, and interface contracts
 - Deliverables: system boundary document, interface/protocol definitions, component skeleton
 - Exit Criteria: all interfaces are documented and implementation can begin without open contract blockers
+- status: pending
 
-## Workstream 2
+### Workstream 2
 
 - Goal: implement the core system path end-to-end on the selected stack
 - Deliverables: primary data/control flow, inter-component wiring, integration baseline
 - Exit Criteria: core system path is functional and basic contract tests pass
+- status: pending
 
-## Workstream 3
+### Workstream 3
 
 - Goal: harden operability, compatibility, and failure resilience
 - Deliverables: observability baseline, backward compatibility checks, failure-mode test coverage
 - Exit Criteria: operability gates pass and the system is ready for production readiness validation
+- status: pending
 DOC
 else
   # service-app (default)
   cat > "$DOCS_DIR/roadmap.md" <<DOC
 # Roadmap
 
-## Workstream 1
+## Iteration 1
+
+- service_goal: users can complete the main journey end-to-end on the selected stack
+- acceptance: the main user flow works, core tests pass, and the service is ready for release validation
+- status: active
+
+### Workstream 1
 
 - Goal: finalize requirements, boundaries, and API/data contracts
 - Deliverables: architecture baseline, contract definitions, repository skeleton
 - Exit Criteria: interfaces are documented and implementation can begin without open blockers
+- status: pending
 
-## Workstream 2
+### Workstream 2
 
 - Goal: implement the MVP core flow end-to-end on the selected stack
 - Deliverables: primary use-case path, persistence wiring, integration path
 - Exit Criteria: the main user flow works and core tests pass
+- status: pending
 
-## Workstream 3
+### Workstream 3
 
 - Goal: harden quality, security, and release readiness
 - Deliverables: automation gates, regression coverage, release checklist
 - Exit Criteria: quality gates pass and the project is ready for release validation
+- status: pending
 DOC
 fi
 
@@ -291,27 +309,31 @@ if [ "$project_archetype" = "system-platform" ]; then
 
 ## Global Plan
 
+- Each iteration defines a service_goal that must be achievable by completing all its workstreams.
 - Define all interface contracts before implementation starts (contract-first)
 - Establish acceptance criteria before implementation starts
-- Execute workstreams sequentially in roadmap order
+- Execute workstreams sequentially within each iteration
 - Validate backward compatibility before each interface change
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when system boundary or interface contract decisions change
+- After each iteration is delivered, run /next-iteration to define the next iteration before resuming autopilot
 
-## Workstream 1 Plan
+## Iteration 1 Plan
+
+### Workstream 1 Plan
 
 - Define system boundary and component responsibilities
 - Document interface and protocol contracts that downstream components depend on
 - Create the minimum skeleton required to validate contracts are implementable
 
-## Workstream 2 Plan
+### Workstream 2 Plan
 
 - Implement the core system path end-to-end
 - Wire inter-component interfaces according to contracts defined in Workstream 1
 - Add contract tests and failure-path tests for the critical flow
 
-## Workstream 3 Plan
+### Workstream 3 Plan
 
 - Add observability baseline (logs, metrics, health checks)
 - Validate backward compatibility and rollback assumptions
@@ -325,26 +347,30 @@ else
 
 ## Global Plan
 
-- Design all roadmap workstreams before implementation starts
+- Each iteration defines a service_goal that must be achievable by completing all its workstreams.
+- Design all iteration workstreams before implementation starts
 - Establish acceptance criteria before implementation starts
-- Execute workstreams sequentially in roadmap order
+- Execute workstreams sequentially within each iteration
 - Run verify against acceptance criteria before review and final QA
 - Run requirement QA after implementation and register remediation workstreams if needed
 - Re-run plan only when roadmap scope or architecture decisions change
+- After each iteration is delivered, run /next-iteration to define the next iteration before resuming autopilot
 
-## Workstream 1 Plan
+## Iteration 1 Plan
+
+### Workstream 1 Plan
 
 - Define domain model, repository boundaries, and API contracts
 - Create the minimum project skeleton required for downstream implementation
 - Validate assumptions that unblock Workstream 2
 
-## Workstream 2 Plan
+### Workstream 2 Plan
 
 - Implement the main user journey end-to-end
 - Connect API, domain, and persistence layers
 - Add tests for the critical path and failure handling
 
-## Workstream 3 Plan
+### Workstream 3 Plan
 
 - Add automation gates, regression checks, and release validation
 - Close security and operational readiness gaps
