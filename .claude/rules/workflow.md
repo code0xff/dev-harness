@@ -56,6 +56,18 @@ workstream 기반 개발을 하는 프로젝트에서 적용한다:
 - `automation_mode: full-auto`에서는 roadmap 순서를 유지하는 범위 내에서 남은 workstream을 연속으로 구현할 수 있다.
 - QA에서 remediation workstream이 등록되면 roadmap의 후속 workstream으로 추가하고, 다음 cycle에서 `/plan`부터 다시 정렬한다.
 
+## Iteration Completeness Rule
+
+iteration 기반 개발을 하는 프로젝트에서 적용한다:
+
+- 각 iteration은 `service_goal`과 `acceptance` 기준을 반드시 포함한다.
+- `service_goal`은 사용자 관점에서 서비스가 어떤 상태가 되는지를 기술한다. 기술적 구현 설명이 아니라 서비스 가치 기술이어야 한다.
+- 해당 iteration의 모든 workstream을 구현했을 때 `service_goal`이 달성되어야 한다.
+- 개별 workstream은 기술적 분해 단위일 수 있지만, iteration 전체는 독립적으로 릴리스 가능한 서비스 상태여야 한다.
+- `/plan` 및 `/next-iteration` 실행 시 이 조건을 충족하는지 확인한다.
+- iteration이 delivered 상태가 되면 `/next-iteration`으로 다음 iteration을 정의한 후 autopilot을 재시작한다.
+- roadmap의 iteration 상태는 `roadmap-state.sh`로 관리한다: `active`, `done`, `pending`.
+
 ## Autopilot Execution Rules
 
 `/autopilot` 실행 시 `autopilot.md`와 `project-automation.md`를 함께 적용한다.
