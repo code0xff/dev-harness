@@ -36,7 +36,7 @@
 
 1. Plan 단계: 활성 `plan_engine`으로 수행 (`/plan` 산출물)
 2. Build 단계: 활성 `build_engine`으로 수행 (plan 범위 내 구현)
-3. Review 단계: 활성 `review_engine`으로 수행 (`/codex-review` 또는 동등 리뷰 절차)
+3. Review 단계: 활성 `review_engine`으로 수행 (`/codex:review` 또는 동등 리뷰 절차)
 
 활성 프로파일에서 `plan_gate: required` 또는 `review_gate: required`인 단계가 누락되면 작업 완료로 간주하지 않는다.
 
@@ -83,7 +83,7 @@ workstream 구현 중과 완료 시 다음 리뷰를 수행한다:
 - `/self-review`는 workstream 실행 중 feature 단위마다 실행하여 문제를 조기에 발견한다.
 - workstream 완료 시 다음 순서대로 실행한다. 각 리뷰의 수정이 커밋된 후 다음 리뷰를 진행하여, 항상 최신 코드를 대상으로 분석한다.
 
-1. 활성 프로파일의 review 절차(`/codex-review` 또는 동등 절차)로 외부 리뷰를 실행하고, 지적 사항을 평가하여 타당한 항목은 반영한다. (`review_gate`가 `required`면 필수)
+1. 활성 프로파일의 review 절차(`/codex:review` 또는 동등 절차)로 외부 리뷰를 실행하고, 지적 사항을 평가하여 타당한 항목은 반영한다. (`review_gate`가 `required`면 필수)
 2. `/security-review`로 보안 관점 분석을 실행하고, 취약점·민감 정보 노출·권한 문제를 확인하여 반영한다.
 
 - 활성 프로파일에서 required인 리뷰가 누락되거나 미해결 지적이 남아 있으면 완료 보고를 금지한다.

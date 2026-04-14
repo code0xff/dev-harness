@@ -49,7 +49,7 @@ engine 값은 아래 중 하나를 사용한다.
 ## Enforcement Rules
 
 - 모든 작업 시작 전에 활성 프로파일을 확인한다.
-- `/plan`, `/workstream`, `/codex-review` 실행 시 활성 프로파일과 불일치하면 사용자에게 알리고 맞는 엔진으로 전환한다.
+- `/plan`, `/workstream`, `/codex:review` 실행 시 활성 프로파일과 불일치하면 사용자에게 알리고 맞는 엔진으로 전환한다.
 - 프로젝트별 고정값이 있으면 기본 권장값으로 되돌리지 않는다.
 - 고정값 변경은 문서 변경으로 간주하며 사용자 확인 후 반영한다.
 - `project-profile.md`는 push 전에 hook으로 유효성 검증한다.

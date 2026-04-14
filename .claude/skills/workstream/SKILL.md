@@ -39,7 +39,7 @@ user-invocable: true
 
 각 feature 단위 구현 후 `/self-review`를 실행하여 문제를 조기에 발견한다.
 
-구현 중 사용자 요청으로 설계가 변경되면: 해당 변경을 문서(architecture, roadmap, workstream 등)에 먼저 반영하고, 변경된 설계에 따라 코드를 수정한 뒤, `/self-review` → `/codex-review` → `/security-review`를 실행한다. 리뷰 완료 후 나머지 구현을 이어간다.
+구현 중 사용자 요청으로 설계가 변경되면: 해당 변경을 문서(architecture, roadmap, workstream 등)에 먼저 반영하고, 변경된 설계에 따라 코드를 수정한 뒤, `/self-review` → `/codex:review` → `/security-review`를 실행한다. 리뷰 완료 후 나머지 구현을 이어간다.
 
 ## 3. 구현 완료 후 코드 리뷰
 
@@ -58,7 +58,7 @@ user-invocable: true
 `/self-review`는 실행 단계(2장)에서 feature 단위마다 이미 수행되었으므로, 완료 리뷰에서는 다음을 순서대로 실행한다. 각 리뷰의 수정이 커밋된 후 다음 리뷰를 진행한다.
 
 #### 3-1. Codex Review (외부 도구)
-- [ ] `/codex-review`로 Codex CLI 리뷰를 실행했다.
+- [ ] `/codex:review`로 Codex MCP 리뷰를 실행했다.
 - [ ] 즉시 반영 항목이 코드에 적용되었다.
 - [ ] 사용자 판단 필요 항목이 보고되었고, 사용자 확인을 받았다.
 

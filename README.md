@@ -76,7 +76,7 @@ cp -r .nightwalker/ /path/to/your-project/.nightwalker/
 | `/init-project` | 목표/스택 대화형 온보딩 후 개발 시작 문서 생성 |
 | `/autopilot` | 목표 기반 end-to-end 자동 실행 |
 | `/workstream` | Workstream 시작~종료 오케스트레이션 |
-| `/codex-review` | 구현 완료 후 외부 Codex CLI 반복 리뷰 |
+| `/codex:review` | 구현 완료 후 외부 Codex CLI 반복 리뷰 |
 | `/self-review` | 구현 완료 후 내부 thinking mode 반복 리뷰 |
 | `/security-review` | 구현 완료 후 보안 관점 반복 리뷰 |
 
@@ -96,7 +96,7 @@ cp -r .nightwalker/ /path/to/your-project/.nightwalker/
 `/autopilot`의 첫 단계인 `/plan`은 roadmap의 모든 workstream과 acceptance criteria를 먼저 설계하고, 이후 build 단계가 그 순서대로 구현을 이어간다.
 기본 `full-auto` 정책은 로컬 개발 완주와 자동 커밋까지를 범위로 두고, push/배포는 개발 후 별도 전략으로 분리한다.
 구현 후에는 verify 단계에서 acceptance criteria 충족 여부를 먼저 검증하고, QA 단계에서 최종 요구사항 충족 여부를 다시 검수한다. 문제가 나오면 remediation workstream을 등록해 같은 flow로 후속 개발을 이어간다.
-`/workstream`은 구현, 커밋, 코드 리뷰를 내부에서 순차 수행한다. 변경 크기에 따라 경량 리뷰(빌드+테스트만) 또는 전체 리뷰(`/codex-review` + `/self-review`)를 선택한다. 리뷰를 별도로 실행하려면 `/workstream` 없이 직접 호출한다.
+`/workstream`은 구현, 커밋, 코드 리뷰를 내부에서 순차 수행한다. 변경 크기에 따라 경량 리뷰(빌드+테스트만) 또는 전체 리뷰(`/codex:review` + `/self-review`)를 선택한다. 리뷰를 별도로 실행하려면 `/workstream` 없이 직접 호출한다.
 
 여기서 `roadmap`은 increment와 workstream으로 구성된다. 각 `## Increment N` 블록은 `service_goal`, `acceptance`, `status`를 가지며, 그 아래 `### Workstream N` 항목들이 실행 단위다. roadmap 상태는 `.claude/hooks/roadmap-state.sh`로 관리한다.
 

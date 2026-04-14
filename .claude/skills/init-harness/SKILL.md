@@ -31,7 +31,7 @@ user-invocable: true
 ## 3. 검증
 
 - rules의 required gate와 profile gate가 충돌하지 않는지 확인한다.
-- 향후 `/plan`, `/workstream`, `/codex-review` 실행 시 이 고정값을 따를 수 있는지 확인한다.
+- 향후 `/plan`, `/workstream`, `/codex:review` 실행 시 이 고정값을 따를 수 있는지 확인한다.
 - 프로젝트 README 또는 운영 문서에 활성 프로파일을 명시한다.
 - `.claude/hooks/validate-project-profile.sh` 검증을 통과하는지 확인한다.
 
