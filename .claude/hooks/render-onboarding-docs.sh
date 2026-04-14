@@ -39,11 +39,25 @@ recommended_stack="$(normalize_value "$(get_value recommended_stack)")"
 selected_stack="$(normalize_value "$(get_value selected_stack)")"
 
 # 쉼표 구분 후보 목록을 번호 목록으로 변환
+# 구 포맷(stack_candidate_1/2/3) fallback 지원
 if [ -n "$stack_candidates_raw" ] && [ "$stack_candidates_raw" != "unset" ]; then
   candidate_list="$(echo "$stack_candidates_raw" | tr ',' '\n' | \
     sed 's/^ *//;s/ *$//' | awk 'NF{print NR". "$0}')"
 else
-  candidate_list="(to be confirmed)"
+  c1="$(get_value stack_candidate_1)"
+  c2="$(get_value stack_candidate_2)"
+  c3="$(get_value stack_candidate_3)"
+  legacy_candidates=""
+  for c in "$c1" "$c2" "$c3"; do
+    [ -n "$c" ] && [ "$c" != "unset" ] && legacy_candidates="${legacy_candidates}${c},"
+  done
+  legacy_candidates="${legacy_candidates%,}"
+  if [ -n "$legacy_candidates" ]; then
+    candidate_list="$(echo "$legacy_candidates" | tr ',' '\n' | \
+      sed 's/^ *//;s/ *$//' | awk 'NF{print NR". "$0}')"
+  else
+    candidate_list="(to be confirmed)"
+  fi
 fi
 open_questions="$(normalize_value "$(get_value open_questions)")"
 

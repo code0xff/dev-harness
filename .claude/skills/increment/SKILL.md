@@ -13,14 +13,14 @@ user-invocable: true
 
 다음 파일을 읽어 현재 상태를 파악한다.
 
-- `.nightwalker/session.yaml` — iteration_status, current_iteration, project_archetype 확인
+- `.nightwalker/session.yaml` — increment_status, current_increment, project_archetype 확인
 - `docs/roadmap.md` — 완료된 iteration 목록과 현재 서비스 상태 파악
 - `docs/architecture.md` — 설계 제약과 확장 방향 파악 (있으면)
 - `git log --oneline -20` — 최근 변경 맥락 파악
 
-## 2. iteration_status 확인
+## 2. increment_status 확인
 
-`session.yaml`의 `iteration_status`를 확인한다.
+`session.yaml`의 `increment_status`를 확인한다. (`iteration_status`가 있으면 fallback으로 사용)
 
 - `delivered`가 아니면: 현재 iteration이 아직 완료되지 않았음을 사용자에게 알리고 중단한다.
   - autopilot이 진행 중이라면 완료 후 다시 실행하도록 안내한다.
@@ -101,5 +101,5 @@ autopilot 실행:
 
 - `docs/roadmap.md`에 새 iteration 블록이 추가된다.
 - `docs/execution-plan.md`에 새 iteration plan 섹션이 추가된다.
-- `session.yaml`의 `current_iteration`과 `iteration_status`가 갱신된다.
+- `session.yaml`의 `current_increment`와 `increment_status`가 갱신된다.
 - autopilot이 새 iteration goal로 재시작된다.
