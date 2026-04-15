@@ -157,7 +157,7 @@ set_automation_key() {
   mv "${AUTOMATION_FILE}.tmp" "$AUTOMATION_FILE"
 }
 
-relax_gate_enforcement_if_unset() {
+sync_gate_enforcement() {
   local lint_cmd build_cmd test_cmd security_cmd
   lint_cmd="$(get_automation_value lint_cmd)"
   build_cmd="$(get_automation_value build_cmd)"
@@ -165,13 +165,19 @@ relax_gate_enforcement_if_unset() {
   security_cmd="$(get_automation_value security_cmd)"
 
   if [ "$lint_cmd" = "unset" ] || [ "$build_cmd" = "unset" ] || [ "$test_cmd" = "unset" ] || [ "$security_cmd" = "unset" ]; then
-    # Empty repositories may not have detectable gate commands yet.
-    # Keep onboarding non-blocking until project scripts are defined.
+    # Gate commands not fully configured — keep enforcement non-blocking.
     set_automation_key "run_gates_on_push" "false"
     set_automation_key "run_quality_on_push" "false"
     set_automation_key "run_gates_on_commit" "false"
     set_automation_key "run_quality_on_commit" "false"
     set_automation_key "enable_quality_gates" "false"
+  else
+    # All gate commands configured — restore enforcement to active.
+    set_automation_key "run_gates_on_push" "true"
+    set_automation_key "run_quality_on_push" "true"
+    set_automation_key "run_gates_on_commit" "true"
+    set_automation_key "run_quality_on_commit" "true"
+    set_automation_key "enable_quality_gates" "true"
   fi
 }
 
@@ -274,7 +280,7 @@ previous_status="$(get_value status)"
 
 "$SUGGEST_HOOK" >/dev/null
 "$BOOTSTRAP_HOOK" >/dev/null
-relax_gate_enforcement_if_unset
+sync_gate_enforcement
 "$PROFILE_HOOK"
 "$APPROVALS_HOOK"
 "$AUTOMATION_HOOK"

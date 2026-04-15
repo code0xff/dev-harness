@@ -357,7 +357,7 @@ if [[ "$test_cmd" =~ ^echo[[:space:]]+ ]] || [ -z "$test_cmd" ] || [ "$test_cmd"
 else
   set_contract_key "run_smoke_cmd" "$test_cmd"
 fi
-set_contract_key "acceptance_test_cmd" "$test_cmd"
+set_contract_key "acceptance_test_cmd" ".claude/hooks/run-automation-gates.sh push"
 set_contract_key "release_readiness_cmd" "$quality_cmd"
 
 echo "init-harness bootstrap 완료:"

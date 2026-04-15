@@ -143,10 +143,10 @@ run_expect_ok "risk classifier high tier for npm install" sh -c \
   'tier=$(.claude/hooks/classify-risk.sh "npm install left-pad"); [ "$tier" = "high" ]'
 
 run_expect_ok "risk classifier medium tier for git commit" sh -c \
-  'tier=$(.claude/hooks/classify-risk.sh "git commit -m feat: x"); [ "$tier" = "medium" ]'
+  'tmpdir=$(mktemp -d) && git init "$tmpdir" -q 2>/dev/null && tier=$(cd "$tmpdir" && bash "'"$ROOT_DIR"'/.claude/hooks/classify-risk.sh" "git commit -m feat: x") && rm -rf "$tmpdir" && [ "$tier" = "medium" ]'
 
 run_expect_ok "risk classifier low tier for read-only command" sh -c \
-  'tier=$(.claude/hooks/classify-risk.sh "ls -la"); [ "$tier" = "low" ]'
+  'tmpdir=$(mktemp -d) && git init "$tmpdir" -q 2>/dev/null && tier=$(cd "$tmpdir" && bash "'"$ROOT_DIR"'/.claude/hooks/classify-risk.sh" "ls -la") && rm -rf "$tmpdir" && [ "$tier" = "low" ]'
 
 run_expect_ok "risk classifier raises to critical in chained command" sh -c \
   'tier=$(.claude/hooks/classify-risk.sh "echo hi; git push --force"); [ "$tier" = "critical" ]'

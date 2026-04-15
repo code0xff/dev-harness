@@ -7,8 +7,8 @@
 
 - done_enforcement: report
 - artifact_definition: release artifact generated
-- artifact_check_cmd: unset
-- run_smoke_cmd: .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh
+- artifact_check_cmd: find .claude/hooks -type f -name "*.sh" -print0 | xargs -0 -I{} bash -n "{}"
+- run_smoke_cmd: bash .claude/tests/harness-regression.sh
 - acceptance_test_cmd: .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh
 - release_readiness_cmd: find .claude/hooks -type f -name "*.sh" -print0 | xargs -0 -I{} bash -n "{}" && .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh && .claude/hooks/validate-completion-contract.sh
 - interface_contract_check: interface contract check is not configured
