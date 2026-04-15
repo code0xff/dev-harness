@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-CONTRACT_FILE=".claude/completion-contract.md"
+CONTRACT_FILE="${CONTRACT_FILE:-.claude/completion-contract.md}"
 OUT_FILE=".claude/state/done-check-report.txt"
 
 if [ ! -f "$CONTRACT_FILE" ]; then

@@ -126,6 +126,16 @@ set_contract_key() {
   mv "${CONTRACT_FILE}.tmp" "$CONTRACT_FILE"
 }
 
+set_contract_if_unset() {
+  local key="$1"
+  local value="$2"
+  local current
+  current="$(grep -E "^- ${key}:" "$CONTRACT_FILE" | head -n 1 | sed -E "s/^- ${key}:[[:space:]]*//" || true)"
+  if [ -z "$current" ] || [ "$current" = "unset" ]; then
+    set_contract_key "$key" "$value"
+  fi
+}
+
 ensure_allowlist_item() {
   local item="$1"
   [ -z "$item" ] && return 0
@@ -348,17 +358,23 @@ quality_cmd="$(get_automation_value quality_cmd)"
 set_contract_key "done_enforcement" "report"
 set_contract_key "artifact_definition" "release artifact generated"
 if [[ "$build_cmd" =~ ^echo[[:space:]]+ ]] || [ -z "$build_cmd" ] || [ "$build_cmd" = "unset" ]; then
-  set_contract_key "artifact_check_cmd" "unset"
+  # build_cmd 미설정 시 기존 값을 보존한다 (의미 있는 값이 있을 수 있음).
+  set_contract_if_unset "artifact_check_cmd" "unset"
 else
   set_contract_key "artifact_check_cmd" "$build_cmd"
 fi
 if [[ "$test_cmd" =~ ^echo[[:space:]]+ ]] || [ -z "$test_cmd" ] || [ "$test_cmd" = "unset" ]; then
-  set_contract_key "run_smoke_cmd" "unset"
+  # test_cmd 미설정 시 기존 값을 보존한다.
+  set_contract_if_unset "run_smoke_cmd" "unset"
 else
   set_contract_key "run_smoke_cmd" "$test_cmd"
 fi
-set_contract_key "acceptance_test_cmd" ".claude/hooks/run-automation-gates.sh push"
-set_contract_key "release_readiness_cmd" "$quality_cmd"
+set_contract_if_unset "acceptance_test_cmd" ".claude/hooks/run-automation-gates.sh push"
+if [[ "$quality_cmd" =~ ^echo[[:space:]]+ ]] || [ -z "$quality_cmd" ] || [ "$quality_cmd" = "unset" ]; then
+  set_contract_if_unset "release_readiness_cmd" "unset"
+else
+  set_contract_key "release_readiness_cmd" "$quality_cmd"
+fi
 
 echo "init-harness bootstrap 완료:"
 echo "- automation gates/quality/engine adapter 값 자동 설정"

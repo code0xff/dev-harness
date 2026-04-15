@@ -443,6 +443,7 @@ run_delivery_stage() {
 
   if [ "${AUTOPILOT_SKIP_VCS_WRITE:-false}" = "true" ]; then
     "$STATE_HOOK" checkpoint "delivery" "skip vcs writes (AUTOPILOT_SKIP_VCS_WRITE=true)"
+    "$STATE_HOOK" defer manual_followups "push/deploy strategy deferred until after local completion" >/dev/null 2>&1 || true
     return 0
   fi
 

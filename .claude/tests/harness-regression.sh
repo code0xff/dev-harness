@@ -233,8 +233,21 @@ run_expect_ok "qa check test mode" sh -c \
 run_expect_ok "verify check test mode" sh -c \
   'NIGHTWALKER_TEST_MODE=true .claude/hooks/run-verify-check.sh "ci-verify" >/dev/null'
 run_expect_ok "done check report-only" .claude/hooks/run-done-check.sh
-run_expect_ok "done check reports pending when completion commands incomplete" sh -c \
-  '.claude/hooks/run-done-check.sh | grep -q "check\\[artifact_check_cmd\\]=pending" && .claude/hooks/run-done-check.sh | grep -Eq "pending_count=[1-9]"'
+run_expect_ok "done check reports pending when completion commands incomplete" sh -c '
+  tmp_contract="$(mktemp)"
+  cat > "$tmp_contract" <<'"'"'EOF'"'"'
+# Completion Contract
+- done_enforcement: report
+- artifact_definition: release artifact generated
+- artifact_check_cmd: unset
+- run_smoke_cmd: unset
+- acceptance_test_cmd: unset
+- release_readiness_cmd: unset
+EOF
+  out="$(CONTRACT_FILE="$tmp_contract" .claude/hooks/run-done-check.sh)"
+  rm -f "$tmp_contract"
+  echo "$out" | grep -q "check\[artifact_check_cmd\]=pending" && echo "$out" | grep -Eq "pending_count=[1-9]"
+'
 
 run_expect_ok "autopilot start" sh -c \
   'NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-autopilot.sh start "ci-regression"'
@@ -338,8 +351,10 @@ for _ in 1 2 3; do .claude/hooks/register-qa-workstream.sh "ci-qa" >/dev/null ||
 .claude/hooks/register-qa-workstream.sh "ci-qa" >/dev/null'
 run_expect_ok "project onboarding flow" .claude/hooks/run-project-onboarding.sh
 run_expect_ok "onboarding stays pending-automation when completion contract unset" sh -c '
-mkdir -p .nightwalker
-cat > .nightwalker/session.yaml <<'"'"'EOF'"'"'
+tmpdir="$(mktemp -d)"
+cp -R .claude "$tmpdir/.claude"
+mkdir -p "$tmpdir/.nightwalker"
+cat > "$tmpdir/.nightwalker/session.yaml" <<'"'"'EOF'"'"'
 schema_version: 1
 status: proposed
 project_goal: ci regression goal
@@ -353,10 +368,18 @@ selected_stack: bash
 open_questions: unset
 decisions: unset
 EOF
-rm -f .claude/state/autopilot-state.json &&
-NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true .claude/hooks/run-project-onboarding.sh >/dev/null &&
-grep -q "status: pending-automation" ONBOARDING_READY.md &&
-test ! -f .claude/state/autopilot-state.json'
+cat > "$tmpdir/.claude/completion-contract.md" <<'"'"'EOF'"'"'
+# Completion Contract
+- done_enforcement: report
+- artifact_definition: release artifact generated
+- artifact_check_cmd: unset
+- run_smoke_cmd: unset
+- acceptance_test_cmd: unset
+- release_readiness_cmd: unset
+EOF
+(cd "$tmpdir" && NIGHTWALKER_TEST_MODE=true AUTOPILOT_SKIP_VCS_WRITE=true ./.claude/hooks/run-project-onboarding.sh >/dev/null) &&
+grep -q "status: pending-automation" "$tmpdir/ONBOARDING_READY.md"
+rm -rf "$tmpdir"'
 run_expect_ok "onboarding auto-starts autopilot when done-check commands configured" sh -c '
 tmpdir="$(mktemp -d)"
 cp -R .claude "$tmpdir/.claude"
