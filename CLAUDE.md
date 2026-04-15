@@ -39,7 +39,7 @@ rules/는 모든 작업에 항상 적용된다. 실행 엔진/모델은 `.claude
 /init-project → /autopilot → delivery → /increment → /autopilot → delivery → ...
 ```
 
-- `roadmap`은 `## Iteration N` 블록으로 구성된다. 각 블록은 `service_goal`, `acceptance`, `status`를 가지며, 하위 `### Workstream N` 항목들이 실행 단위다.
+- `roadmap`은 `## Increment N` 블록으로 구성된다. 각 블록은 `service_goal`, `acceptance`, `status`를 가지며, 하위 `### Workstream N` 항목들이 실행 단위다.
 - increment가 delivered 상태가 되면 `/increment`으로 다음 increment를 정의한다.
 - roadmap 상태 관리는 `.claude/hooks/roadmap-state.sh`를 사용한다.
 
