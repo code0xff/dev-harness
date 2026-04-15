@@ -135,6 +135,19 @@ run_expect_ok "risk classifier output valid tier" sh -c \
 run_expect_ok "pre-approval report-only for chained command bypass" sh -c \
   "printf '{\"tool_input\":{\"command\":\"echo hi; mkdir bypass-dir\"}}' | .claude/hooks/validate-pre-approval.sh >/dev/null"
 
+run_expect_ok "commit-msg valid format passes" sh -c \
+  "printf '{\"tool_input\":{\"command\":\"git commit -m feat: add auth\"}}' | .claude/hooks/validate-commit-msg.sh >/dev/null"
+
+run_expect_fail_pipe "commit-msg invalid format blocked" \
+  '{"tool_input":{"command":"git commit -m added auth without type"}}' \
+  .claude/hooks/validate-commit-msg.sh
+
+run_expect_ok "file-protection non-policy file passes silently" sh -c \
+  "printf '{\"tool_input\":{\"file_path\":\"docs/architecture.md\"}}' | .claude/hooks/validate-file-protection.sh >/dev/null"
+
+run_expect_ok "file-protection policy file warns in report mode" sh -c \
+  "printf '{\"tool_input\":{\"file_path\":\".claude/project-profile.md\"}}' | .claude/hooks/validate-file-protection.sh >/dev/null 2>/dev/null"
+
 run_expect_ok "automation gates push" .claude/hooks/run-automation-gates.sh push
 run_expect_ok "quality gates push" .claude/hooks/run-quality-gates.sh push
 run_expect_ok "engine readiness check" .claude/hooks/check-engine-readiness.sh
