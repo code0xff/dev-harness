@@ -164,7 +164,15 @@ sync_gate_enforcement() {
   test_cmd="$(get_automation_value test_cmd)"
   security_cmd="$(get_automation_value security_cmd)"
 
-  if [ "$lint_cmd" = "unset" ] || [ "$build_cmd" = "unset" ] || [ "$test_cmd" = "unset" ] || [ "$security_cmd" = "unset" ]; then
+  local is_placeholder=false
+  for _cmd in "$lint_cmd" "$build_cmd" "$test_cmd" "$security_cmd"; do
+    if [ "$_cmd" = "unset" ] || [[ "$_cmd" =~ ^echo[[:space:]]+ ]]; then
+      is_placeholder=true
+      break
+    fi
+  done
+
+  if [ "$is_placeholder" = "true" ]; then
     # Gate commands not fully configured — keep enforcement non-blocking.
     set_automation_key "run_gates_on_push" "false"
     set_automation_key "run_quality_on_push" "false"

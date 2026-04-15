@@ -40,12 +40,20 @@ if [ "$quality_cmd" = "unset" ]; then
   exit 2
 fi
 
-echo "[quality-gate] $quality_cmd" >&2
-eval "$quality_cmd"
+if [[ "$quality_cmd" =~ ^echo[[:space:]]+ ]]; then
+  echo "[quality-gate] skip (echo-placeholder: configure a real command)" >&2
+else
+  echo "[quality-gate] $quality_cmd" >&2
+  eval "$quality_cmd"
+fi
 
 for extra_key in quality_coverage_cmd quality_perf_cmd quality_architecture_cmd; do
   extra_cmd=$(get_value "$extra_key")
   if [ "$extra_cmd" = "unset" ]; then
+    continue
+  fi
+  if [[ "$extra_cmd" =~ ^echo[[:space:]]+ ]]; then
+    echo "[quality-gate:${extra_key}] skip (echo-placeholder: configure a real command)" >&2
     continue
   fi
   echo "[quality-gate:${extra_key}] $extra_cmd" >&2

@@ -355,8 +355,8 @@ build_cmd="$(get_automation_value build_cmd)"
 test_cmd="$(get_automation_value test_cmd)"
 quality_cmd="$(get_automation_value quality_cmd)"
 
-set_contract_key "done_enforcement" "report"
-set_contract_key "artifact_definition" "release artifact generated"
+set_contract_if_unset "done_enforcement" "report"
+set_contract_if_unset "artifact_definition" "release artifact generated"
 if [[ "$build_cmd" =~ ^echo[[:space:]]+ ]] || [ -z "$build_cmd" ] || [ "$build_cmd" = "unset" ]; then
   # build_cmd 미설정 시 기존 값을 보존한다 (의미 있는 값이 있을 수 있음).
   set_contract_if_unset "artifact_check_cmd" "unset"

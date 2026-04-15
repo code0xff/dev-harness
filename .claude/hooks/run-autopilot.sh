@@ -320,6 +320,11 @@ run_verify_stage() {
   local implement_cmd="$3"
   local attempt=1
 
+  if [ "$verify_cmd" = "unset" ]; then
+    "$STATE_HOOK" checkpoint "verify" "skip (verify_cmd unset)"
+    return 0
+  fi
+
   while [ "$attempt" -le "$max_fix_attempts" ]; do
     "$STATE_HOOK" checkpoint "verify" "run verify attempt=${attempt}"
     if eval "$verify_cmd"; then
