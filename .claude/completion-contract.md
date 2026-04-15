@@ -7,8 +7,8 @@
 
 - done_enforcement: report
 - artifact_definition: release artifact generated
-- artifact_check_cmd: echo "no build step for harness-only repository"
-- run_smoke_cmd: echo "run smoke is not configured"
+- artifact_check_cmd: unset
+- run_smoke_cmd: unset
 - acceptance_test_cmd: .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh
 - release_readiness_cmd: find .claude/hooks -type f -name "*.sh" -print0 | xargs -0 -I{} bash -n "{}" && .claude/hooks/validate-project-profile.sh && .claude/hooks/validate-project-approvals.sh && .claude/hooks/validate-project-automation.sh && .claude/hooks/validate-completion-contract.sh
 - interface_contract_check: interface contract check is not configured

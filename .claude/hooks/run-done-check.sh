@@ -25,6 +25,12 @@ run_check() {
     return 10
   fi
 
+  # echo-only 플레이스홀더 감지: 실제 검증 없이 항상 성공하는 명령을 pass로 기록하지 않는다.
+  if [[ "$cmd" =~ ^echo[[:space:]]+ ]]; then
+    printf "check[%s]=pending (echo-placeholder: configure a real command)\n" "$key" >> "$tmp"
+    return 10
+  fi
+
   if eval "$cmd" >/dev/null 2>&1; then
     printf "check[%s]=pass\n" "$key" >> "$tmp"
     return 0
